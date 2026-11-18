@@ -84,10 +84,10 @@ body {
 
 /* ---------- Stage (on the field) ---------- */
 .stage { container-type: inline-size; display: grid; gap: 22px; min-width: 0; }
-.topline { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; }
+.topline { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; }
 .phase-word { font-weight: 800; font-size: 26px; line-height: 1; font-variation-settings: "wdth" 88; letter-spacing: -.01em; }
 .block-count { font-size: 15px; font-weight: 500; }
-.state-tag { margin-left: auto; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1.5px solid currentColor; }
+.state-tag { margin-left: auto; display: inline-flex; align-items: center; height: 34px; font-size: 13.5px; font-weight: 600; padding: 0 12px; border-radius: 999px; border: 1.5px dashed color-mix(in srgb, var(--field-ink) 60%, transparent); }
 
 .clock {
   font-weight: 800;
@@ -174,7 +174,8 @@ input[type="text"], input[type="url"], input[type="number"], select {
   border: 1.5px solid var(--sheet-line); border-radius: 10px; padding: 9px 12px; min-width: 0;
 }
 input:hover, select:hover { border-color: var(--sheet-muted); }
-input[type="number"] { width: 66px; text-align: center; padding: 8px 4px; font-variant-numeric: tabular-nums; font-weight: 600; }
+input[type="number"] { width: 64px; text-align: center; padding: 8px 4px; font-variant-numeric: tabular-nums; font-weight: 600; -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input:disabled { opacity: .5; }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .grow { flex: 1 1 220px; }
@@ -215,7 +216,7 @@ input:disabled { opacity: .5; }
 
 /* Side panel for plan and alarm */
 .top-actions { display: flex; gap: 8px; }
-.on-field .btn-small { padding: 7px 12px; min-height: 34px; font-size: 13.5px; }
+.on-field .btn-small { padding: 0 13px; height: 34px; min-height: 34px; font-size: 13.5px; }
 .state-tag[hidden] + .top-actions { margin-left: auto; }
 .drawer-backdrop { position: fixed; inset: 0; z-index: 70; background: rgba(10, 6, 5, .38); }
 .drawer {
@@ -234,14 +235,20 @@ html.desktop .drawer { border-top-left-radius: 14px; }
 .panel-meta { margin: -6px 0 0; font-size: 13px; color: var(--sheet-muted); }
 @media (max-width: 520px) { .drawer { border-radius: 0; } .drawer-body { padding-inline: 16px; } }
 
-.presets { display: flex; gap: 6px; flex-wrap: wrap; }
-.gen { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 14px; background: var(--sheet-2); border-radius: 12px; font-size: 14px; }
-.gen label { display: inline-flex; align-items: center; gap: 7px; }
+.presets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.presets button { width: 100%; }
+.gen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 14px; padding: 14px; background: var(--sheet-2); border-radius: 12px; font-size: 13px; }
+.gen .gen-title { grid-column: 1 / -1; margin: 0; font-size: 14px; font-weight: 650; }
+.gen #btnGen { grid-column: 1 / -1; justify-self: stretch; }
+.gen label { display: grid; gap: 5px; color: var(--sheet-muted); }
+.gen .unit { display: flex; align-items: center; gap: 7px; color: var(--sheet-ink); }
+.gen input[type="number"] { width: 100%; max-width: 88px; background: var(--sheet); }
 .blocks { display: grid; gap: 6px; }
 .block { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 8px 8px 10px; border: 1.5px solid var(--sheet-line); border-radius: 12px; }
 .block .n { font-weight: 800; font-size: 17px; font-variation-settings: "wdth" 80; text-align: center; color: var(--sheet-muted); }
-.block .fields { display: flex; gap: 8px 18px; flex-wrap: wrap; align-items: center; font-size: 14px; }
-.block .fields label { display: inline-flex; align-items: center; gap: 7px; }
+.block .fields { display: grid; grid-template-columns: max-content 64px max-content; gap: 6px 10px; align-items: center; font-size: 14px; }
+.block .fields label { display: contents; }
+.block .fields input[type="number"] { padding: 6px 4px; }
 .block .k-w { font-weight: 650; color: var(--accent-focus); }
 .block .k-r { font-weight: 650; color: var(--accent-rest); }
 .block.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--sheet)); }
@@ -473,10 +480,11 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
           <button class="btn-quiet" data-p="6,30,5,15">6 de 30 min</button>
         </div>
         <div class="gen">
-          <label><input type="number" id="gCount" min="1" max="20" value="4"> bloques de</label>
-          <label><input type="number" id="gWork" min="1" max="240" value="25"> min</label>
-          <label>descanso <input type="number" id="gRest" min="0" max="120" value="5"> min</label>
-          <label>el último <input type="number" id="gLast" min="0" max="120" value="15"> min</label>
+          <p class="gen-title">Armar un plan parejo</p>
+          <label>Bloques<span class="unit"><input type="number" id="gCount" min="1" max="20" value="4"></span></label>
+          <label>Foco<span class="unit"><input type="number" id="gWork" min="1" max="240" value="25"> min</span></label>
+          <label>Descanso<span class="unit"><input type="number" id="gRest" min="0" max="120" value="5"> min</span></label>
+          <label>Último descanso<span class="unit"><input type="number" id="gLast" min="0" max="120" value="15"> min</span></label>
           <button class="btn-solid" id="btnGen">Armar plan</button>
         </div>
         <div class="blocks" id="blocks"></div>
@@ -492,7 +500,7 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
         <p class="panel-meta" id="alarmSum"></p>
         <div class="opts">
           <div class="opt">
-            <label for="alarmSound">Sonido al terminar cada fase</label>
+            <label for="alarmSound">Sonido</label>
             <div class="row">
               <select id="alarmSound">
                 <option value="bell">Campana</option>
