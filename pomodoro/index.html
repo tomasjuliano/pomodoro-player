@@ -248,6 +248,41 @@ input[type="checkbox"] { width: 18px; height: 18px; margin: 0; }
 .keys { font-size: 13px; color: var(--sheet-muted); padding-top: 14px; border-top: 1px solid var(--sheet-line); display: flex; gap: 6px 16px; flex-wrap: wrap; }
 kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5px solid var(--sheet-line); border-bottom-width: 3px; background: var(--sheet); color: var(--sheet-ink); }
 
+/* ---------- Desktop title bar (only inside the Neutralino app) ---------- */
+.titlebar { display: none; }
+html.desktop .titlebar {
+  display: flex; align-items: stretch; position: fixed; inset: 0 0 auto; height: 36px; z-index: 50;
+  background: var(--field); color: var(--field-ink);
+  transition: background-color 1.2s cubic-bezier(.16, 1, .3, 1);
+  user-select: none;
+}
+/* only the content under the title bar scrolls, like a native app */
+html.desktop body { position: fixed; inset: 36px 0 0; overflow-y: auto; overflow-x: hidden; min-height: 0; scrollbar-width: thin; }
+.tb-drag { flex: 1; display: flex; align-items: center; gap: 9px; padding-left: 12px; min-width: 0; cursor: default; }
+.tb-drag img { width: 16px; height: 16px; flex: none; }
+.tb-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-status { font-size: 12px; font-variant-numeric: tabular-nums; opacity: .8; white-space: nowrap; }
+.tb-btns { display: flex; }
+.tb-btns button {
+  width: 46px; height: 36px; min-height: 0; padding: 0; border: 0; border-radius: 0;
+  font: 400 10px/1 "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif; color: inherit;
+}
+.tb-btns button:hover { background: color-mix(in srgb, var(--field-ink) 14%, transparent); }
+.tb-btns button:active { background: color-mix(in srgb, var(--field-ink) 22%, transparent); }
+.tb-btns button.tb-close:hover { background: #c42b1c; color: #fff; }
+.tb-btns button.tb-close:active { background: #c84031; color: #fff; }
+.tb-btns button:focus-visible { outline-offset: -3px; }
+.rz { display: none; }
+html.desktop .rz { display: block; position: fixed; z-index: 60; }
+html.desktop.maximized .rz { display: none; }
+.rz-n, .rz-s { left: 8px; right: 8px; height: 5px; cursor: ns-resize; }
+.rz-e, .rz-w { top: 8px; bottom: 8px; width: 5px; cursor: ew-resize; }
+.rz-n { top: 0; } .rz-s { bottom: 0; } .rz-e { right: 0; } .rz-w { left: 0; }
+.rz-ne, .rz-nw, .rz-se, .rz-sw { width: 10px; height: 10px; }
+.rz-ne { top: 0; right: 0; cursor: nesw-resize; } .rz-sw { bottom: 0; left: 0; cursor: nesw-resize; }
+.rz-nw { top: 0; left: 0; cursor: nwse-resize; } .rz-se { bottom: 0; right: 0; cursor: nwse-resize; }
+html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover) { opacity: .55; }
+
 @media (max-width: 520px) {
   .layout { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .sheet { padding: 18px 16px; border-radius: 16px; }
@@ -260,6 +295,22 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
 </style>
 </head>
 <body data-phase="work" data-state="idle">
+<header class="titlebar" id="titlebar">
+  <div class="tb-drag" id="tbDrag">
+    <img src="icon.png" alt="">
+    <span class="tb-title">Foco y Música</span>
+    <span class="tb-status" id="tbStatus"></span>
+  </div>
+  <div class="tb-btns">
+    <button type="button" id="tbMin" title="Minimizar" aria-label="Minimizar">&#xE921;</button>
+    <button type="button" id="tbMax" title="Maximizar" aria-label="Maximizar">&#xE922;</button>
+    <button type="button" class="tb-close" id="tbClose" title="Cerrar" aria-label="Cerrar">&#xE8BB;</button>
+  </div>
+</header>
+<div class="rz rz-n" data-edge="n"></div><div class="rz rz-s" data-edge="s"></div>
+<div class="rz rz-e" data-edge="e"></div><div class="rz rz-w" data-edge="w"></div>
+<div class="rz rz-ne" data-edge="ne"></div><div class="rz rz-nw" data-edge="nw"></div>
+<div class="rz rz-se" data-edge="se"></div><div class="rz rz-sw" data-edge="sw"></div>
 <div class="layout">
 
   <!-- ===== Field: what you glance at ===== -->
@@ -442,6 +493,7 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
   </aside>
 </div>
 
+<script src="vendor/neutralino.js"></script>
 <script>
 (() => {
   "use strict";
@@ -773,9 +825,11 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     $("seqLeft").textContent = T.finished ? "Sesión terminada" : `Quedan ${fmtDur(restMs)} de sesión`;
     $("seqEnd").textContent = T.finished ? "" : `Terminás a las ${fmtTime(new Date(Date.now() + restMs))}`;
 
-    document.title = T.started && !T.finished
+    const status = T.started && !T.finished
       ? `${fmtClock(left)} ${seg.kind === "work" ? "Foco " + (seg.block + 1) + "/" + blocks : "Descanso"}${T.running ? "" : " (pausa)"}`
-      : "Foco y Música";
+      : "";
+    document.title = status || "Foco y Música";
+    $("tbStatus").textContent = status;
   }
 
   setInterval(() => {
@@ -1164,6 +1218,77 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     else if (e.key === "s" || e.key === "S") skip();
     else if (e.key === "m" || e.key === "M") { audio(); music.toggle(); }
   });
+
+  /* =================== Desktop window (Neutralino) =================== */
+  // Neutralino injects its globals (NL_PORT, NL_TOKEN…); the client library comes from vendor/neutralino.js. Wait for both.
+  (function waitForDesktop(tries) {
+    if (window.Neutralino && window.NL_PORT) setupDesktop(window.Neutralino);
+    else if (tries > 0) setTimeout(() => waitForDesktop(tries - 1), 100);
+  })(location.port === "47615" ? 50 : 0);
+  function setupDesktop(N) {
+    document.documentElement.classList.add("desktop");
+    try { N.init(); } catch {}
+    const ICON_MAX = "", ICON_RESTORE = "";
+    const syncMax = async () => {
+      try {
+        const m = await N.window.isMaximized();
+        document.documentElement.classList.toggle("maximized", m);
+        $("tbMax").textContent = m ? ICON_RESTORE : ICON_MAX;
+        $("tbMax").title = m ? "Restaurar" : "Maximizar";
+        $("tbMax").setAttribute("aria-label", $("tbMax").title);
+      } catch {}
+    };
+    const toggleMax = async () => {
+      try { (await N.window.isMaximized()) ? await N.window.unmaximize() : await N.window.maximize(); } catch {}
+      syncMax();
+    };
+    N.window.setDraggableRegion("tbDrag").catch(() => {});
+    $("tbDrag").addEventListener("dblclick", toggleMax);
+    $("tbMin").addEventListener("click", () => N.window.minimize().catch(() => {}));
+    $("tbMax").addEventListener("click", toggleMax);
+    $("tbClose").addEventListener("click", () => N.app.exit().catch(() => window.close()));
+    window.addEventListener("resize", syncMax);
+
+    // Borderless windows lose the OS resize frame: invisible edges resize the window instead.
+    const MIN_W = 380, MIN_H = 520;
+    document.querySelectorAll(".rz").forEach((el) => {
+      el.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        el.setPointerCapture(e.pointerId);
+        const edge = el.dataset.edge;
+        const start = { mx: e.screenX, my: e.screenY, x: window.screenX, y: window.screenY, w: window.outerWidth, h: window.outerHeight };
+        let pending = null, busy = false;
+        const apply = async () => {
+          if (busy || !pending) return;
+          busy = true;
+          const r = pending; pending = null;
+          try {
+            if (r.moved) await N.window.move(r.x, r.y);
+            await N.window.setSize({ width: r.w, height: r.h });
+          } catch {}
+          busy = false;
+          if (pending) requestAnimationFrame(apply);
+        };
+        const onMove = (ev) => {
+          const dx = ev.screenX - start.mx, dy = ev.screenY - start.my;
+          let { x, y, w, h } = start;
+          if (edge.includes("e")) w = Math.max(MIN_W, start.w + dx);
+          if (edge.includes("s")) h = Math.max(MIN_H, start.h + dy);
+          if (edge.includes("w")) { w = Math.max(MIN_W, start.w - dx); x = start.x + (start.w - w); }
+          if (edge.includes("n")) { h = Math.max(MIN_H, start.h - dy); y = start.y + (start.h - h); }
+          pending = { x, y, w, h, moved: edge.includes("w") || edge.includes("n") };
+          requestAnimationFrame(apply);
+        };
+        const onUp = () => { el.removeEventListener("pointermove", onMove); el.removeEventListener("pointerup", onUp); el.removeEventListener("pointercancel", onUp); };
+        el.addEventListener("pointermove", onMove);
+        el.addEventListener("pointerup", onUp);
+        el.addEventListener("pointercancel", onUp);
+      });
+    });
+    window.addEventListener("blur", () => document.documentElement.classList.add("inactive"));
+    window.addEventListener("focus", () => document.documentElement.classList.remove("inactive"));
+    syncMax();
+  }
 
   /* =================== Boot =================== */
   setTab(tab);

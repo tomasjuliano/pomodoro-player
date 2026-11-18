@@ -44,3 +44,7 @@ One family, **Archivo** (Google Fonts, variable `wdth` 62–125, `wght` 100–90
 ## Browser surfaces
 
 `::selection` inverts field and ink; caret and `accent-color` follow the phase accent; scrollbars tinted from field ink or sheet line; focus ring 2.5px in current ink.
+
+## Desktop window (Neutralino)
+
+Borderless window with an HTML title bar (36px) painted in the current field colour, so the phase colour reaches the window edge. Left: 16px icon, app name, live status (time and phase). Right: Windows caption buttons (46×36, Segoe Fluent Icons glyphs E921/E922/E923/E8BB; close hover `#c42b1c`). Double-click maximizes; the bar dims when the window loses focus. Only the content under the bar scrolls. Invisible 5px edges and 10px corners resize the window.

@@ -7,8 +7,9 @@
   "documentRoot": "/pomodoro/",
   "url": "/",
   "enableServer": true,
-  "enableNativeAPI": false,
-  "tokenSecurity": "one-time",
+  "enableNativeAPI": true,
+  "nativeAllowList": ["window.minimize", "window.maximize", "window.unmaximize", "window.isMaximized", "window.beginDrag", "window.move", "window.getPosition", "window.getSize", "window.setSize", "app.exit"],
+  "tokenSecurity": "none",
   "logging": {
     "enabled": false,
     "writeToLogFile": false
@@ -25,7 +26,9 @@
       "alwaysOnTop": false,
       "icon": "/pomodoro/icon.png",
       "enableInspector": false,
-      "borderless": false,
+      "borderless": true,
+      "injectGlobals": true,
+      "injectClientLibrary": false,
       "maximize": false,
       "hidden": false,
       "resizable": true,

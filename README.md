@@ -14,6 +14,8 @@ npm run setup   # baja los binarios de Neutralino (v6.10.0) a bin/
 npm run build   # genera dist/foco-y-musica/foco-y-musica-win_x64.exe
 ```
 
+La ventana no usa el marco de Windows: tiene una barra de título propia del color de la fase (arrastrar, doble clic para maximizar, minimizar, maximizar y cerrar) y se redimensiona desde los bordes.
+
 `npm run dev` abre la app sin compilar. El ejecutable queda en `dist/foco-y-musica/` y se puede copiar a cualquier carpeta: es un solo archivo con la app adentro.
 
 ## Cómo usarla en el navegador
