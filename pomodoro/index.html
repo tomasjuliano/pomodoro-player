@@ -190,6 +190,22 @@ input:disabled { opacity: .5; }
 .player-empty strong { font-weight: 650; }
 .err { color: var(--accent-focus); font-size: 14px; margin: 0; font-weight: 550; }
 
+.queue { display: grid; gap: 8px; }
+.queue h3 { font-size: 16px; font-weight: 700; font-variation-settings: "wdth" 92; margin: 0; }
+.queue-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.queue-list button {
+  width: 100%; display: grid; grid-template-columns: 26px 64px minmax(0, 1fr); gap: 10px; align-items: center;
+  text-align: left; border-radius: 10px; padding: 6px 8px; min-height: 52px; font-weight: 400; justify-content: stretch;
+}
+.queue-list button:hover { background: var(--sheet-2); }
+.queue-list .q-n { font-size: 13px; font-weight: 700; color: var(--sheet-muted); text-align: right; font-variant-numeric: tabular-nums; }
+.queue-list img { width: 64px; height: 36px; object-fit: cover; border-radius: 6px; background: var(--sheet-2); display: block; }
+.queue-list .q-t { display: grid; min-width: 0; }
+.queue-list .q-title { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-list .q-by { font-size: 12.5px; color: var(--sheet-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-list li:first-child .q-n { color: var(--accent); }
+#queueMore { justify-self: start; }
+.next-up { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .saved { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { display: inline-flex; align-items: stretch; border: 1.5px solid var(--sheet-line); border-radius: 999px; background: var(--sheet); overflow: hidden; }
 .chip button { border-radius: 0; padding: 6px 10px; min-height: 32px; font-size: 13px; font-weight: 550; }
@@ -294,6 +310,7 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
       <div class="now-text">
         <span class="now-title" id="nowTitle">Sin música</span>
         <span class="now-src" id="nowSrc">Cargá una playlist abajo</span>
+        <span class="next-up" id="nextUp" hidden></span>
       </div>
       <div class="music-ctrl">
         <button class="btn-icon" id="mPrev" title="Tema anterior" aria-label="Tema anterior"><svg class="i" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
@@ -336,6 +353,15 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
           <span class="small">Pegá un link como open.spotify.com/playlist/…</span>
         </div>
         <div id="spHolder"></div>
+      </div>
+      <div class="queue" id="queueBox" hidden>
+        <div class="sec-head">
+          <h3>A continuación</h3>
+          <span class="muted small" id="queueMeta"></span>
+        </div>
+        <ol class="queue-list" id="queueList"></ol>
+        <p class="muted small" id="queueEnd" hidden>Es el último tema de la playlist.</p>
+        <button type="button" class="btn-quiet" id="queueMore" hidden>Ver todos</button>
       </div>
       <p class="muted small" id="musicNote" style="margin:0"></p>
     </section>
@@ -948,7 +974,73 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     $("nowTitle").textContent = title;
     $("nowTitle").title = title;
     $("nowSrc").textContent = src;
+    renderQueue();
   }
+
+  /* ---- Up-next queue (YouTube) ---- */
+  const QUEUE_SHORT = 6, QUEUE_LONG = 50;
+  const titleCache = new Map(); // videoId -> {title, author} | Promise
+  let queueExpanded = false, queueKey = "";
+  function videoInfo(id) {
+    if (titleCache.has(id)) return titleCache.get(id);
+    const p = fetch("https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + id))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { const v = j ? { title: j.title, author: j.author_name } : { title: "Tema no disponible", author: "" }; titleCache.set(id, v); return v; })
+      .catch(() => { titleCache.delete(id); return null; });
+    titleCache.set(id, p);
+    return p;
+  }
+  function queueState() {
+    if (tab !== "yt" || !yt || !ytReady || ytFailed || !yt.getPlaylist) return null;
+    const pl = yt.getPlaylist();
+    if (!pl || pl.length < 2) return null;
+    return { pl, idx: Math.max(0, yt.getPlaylistIndex()) };
+  }
+  function renderQueue(force) {
+    const box = $("queueBox"), next = $("nextUp");
+    const q = queueState();
+    if (!q) { box.hidden = true; next.hidden = true; queueKey = ""; return; }
+    const { pl, idx } = q;
+    const upcoming = pl.slice(idx + 1);
+    const limit = queueExpanded ? QUEUE_LONG : QUEUE_SHORT;
+    const key = [idx, pl.length, pl[idx + 1], queueExpanded, ytShuffle].join("|");
+    // first upcoming title on the field
+    if (upcoming.length) {
+      const first = titleCache.get(upcoming[0]);
+      next.hidden = false;
+      next.textContent = "Sigue: " + (first && first.title ? first.title : "…");
+    } else next.hidden = true;
+    if (key === queueKey && !force) return;
+    queueKey = key;
+    box.hidden = false;
+    $("queueMeta").textContent = upcoming.length === 1 ? "Queda 1 tema" : `Quedan ${upcoming.length} temas`;
+    $("queueEnd").hidden = upcoming.length > 0;
+    const more = $("queueMore");
+    more.hidden = upcoming.length <= QUEUE_SHORT;
+    more.textContent = queueExpanded ? "Ver menos" : `Ver ${Math.min(upcoming.length, QUEUE_LONG)} próximos`;
+    const list = $("queueList");
+    list.innerHTML = "";
+    upcoming.slice(0, limit).forEach((id, k) => {
+      const at = idx + 1 + k;
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button";
+      b.title = "Reproducir este tema";
+      b.innerHTML = `<span class="q-n">${at + 1}</span><img alt="" loading="lazy" src="https://i.ytimg.com/vi/${id}/mqdefault.jpg"><span class="q-t"><span class="q-title">Cargando título…</span><span class="q-by"></span></span>`;
+      const setInfo = (v) => {
+        if (!v || !v.title) return;
+        b.querySelector(".q-title").textContent = v.title;
+        b.querySelector(".q-by").textContent = v.author || "";
+        b.setAttribute("aria-label", `Reproducir ${v.title}`);
+        if (k === 0) next.textContent = "Sigue: " + v.title;
+      };
+      const c = titleCache.get(id);
+      if (c && !(c instanceof Promise)) setInfo(c); else videoInfo(id).then(setInfo);
+      b.addEventListener("click", () => { audio(); yt.playVideoAt(at); });
+      li.appendChild(b); list.appendChild(li);
+    });
+  }
+  $("queueMore").addEventListener("click", () => { queueExpanded = !queueExpanded; renderQueue(true); });
   setInterval(() => { if (tab === "yt" && yt) updateNow(); }, 2000);
 
   function showErr(msg) { const e = $("musicErr"); e.textContent = msg || ""; e.hidden = !msg; }
@@ -997,12 +1089,38 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     const ok = tab === "yt" ? parseYouTube(url) : parseSpotify(url);
     if (!ok) { showErr("Ese link no es válido para " + (tab === "yt" ? "YouTube." : "Spotify.")); return; }
     if (MS.saved.some((s) => s.url === url)) { showErr("Ese link ya está guardado."); return; }
-    let name = "";
-    if (tab === "yt" && yt && yt.getVideoData) name = (yt.getVideoData() || {}).title || "";
-    if (!name) name = (tab === "yt" ? "YouTube " : "Spotify ") + (MS.saved.filter((s) => s.src === tab).length + 1);
-    MS.saved.push({ src: tab, url, name: name.slice(0, 40) });
+    const item = { src: tab, url, name: (tab === "yt" ? "YouTube " : "Spotify ") + (MS.saved.filter((s) => s.src === tab).length + 1) };
+    MS.saved.push(item);
     saveMusic(); renderSaved(); showErr("");
+    nameSaved(item);
   });
+  // Name a saved link after the playlist (or video, album…) itself, via the service's oEmbed endpoint.
+  async function fetchSourceName(item) {
+    let endpoint, target;
+    if (item.src === "yt") {
+      const ref = parseYouTube(item.url);
+      if (!ref) return "";
+      target = ref.list ? "https://www.youtube.com/playlist?list=" + ref.list : "https://www.youtube.com/watch?v=" + ref.v;
+      endpoint = "https://www.youtube.com/oembed?format=json&url=";
+    } else {
+      const uri = parseSpotify(item.url);
+      if (!uri) return "";
+      const [, type, id] = uri.split(":");
+      target = `https://open.spotify.com/${type}/${id}`;
+      endpoint = "https://open.spotify.com/oembed?url=";
+    }
+    try {
+      const r = await fetch(endpoint + encodeURIComponent(target));
+      if (!r.ok) return "";
+      return ((await r.json()).title || "").trim();
+    } catch { return ""; }
+  }
+  async function nameSaved(item) {
+    const name = await fetchSourceName(item);
+    item.named = true;
+    if (name) item.name = name.slice(0, 48);
+    saveMusic(); renderSaved();
+  }
   function renderSaved() {
     const box = $("saved");
     box.innerHTML = "";
@@ -1032,6 +1150,7 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     ytShuffle = !ytShuffle; yt.setShuffle(ytShuffle);
     if (ytShuffle) yt.playVideoAt(0);
     $("mShuffle").setAttribute("aria-pressed", ytShuffle);
+    setTimeout(() => renderQueue(true), 800);
     $("mShuffle").style.background = ytShuffle ? "color-mix(in srgb, var(--field-ink) 22%, transparent)" : "";
   });
   const vol = $("mVol");
@@ -1049,6 +1168,7 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
   /* =================== Boot =================== */
   setTab(tab);
   renderSaved();
+  MS.saved.filter((s) => !s.named).forEach(nameSaved); // fix links saved with a track's name
   renderAlarmSum();
   buildRuler();
   resetTimer();
