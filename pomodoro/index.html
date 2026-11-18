@@ -1254,6 +1254,9 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
 
     // Borderless windows lose the OS resize frame: invisible edges resize the window instead.
     const MIN_W = 380, MIN_H = 520;
+    // Restoring the saved size or resizing can bring back Windows' grey frame; strip it again.
+    const reBorderless = () => N.window.setBorderless(true).catch(() => {});
+    reBorderless();
     document.querySelectorAll(".rz").forEach((el) => {
       el.addEventListener("pointerdown", (e) => {
         e.preventDefault();
@@ -1267,7 +1270,8 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
           const r = pending; pending = null;
           try {
             if (r.moved) await N.window.move(r.x, r.y);
-            await N.window.setSize({ width: r.w, height: r.h });
+            // resizable:false keeps Windows from re-adding its thick (grey) resize frame to the borderless window
+            await N.window.setSize({ width: r.w, height: r.h, resizable: false });
           } catch {}
           busy = false;
           if (pending) requestAnimationFrame(apply);
@@ -1282,7 +1286,7 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
           pending = { x, y, w, h, moved: edge.includes("w") || edge.includes("n") };
           requestAnimationFrame(apply);
         };
-        const onUp = () => { el.removeEventListener("pointermove", onMove); el.removeEventListener("pointerup", onUp); el.removeEventListener("pointercancel", onUp); };
+        const onUp = () => { setTimeout(reBorderless, 120); el.removeEventListener("pointermove", onMove); el.removeEventListener("pointerup", onUp); el.removeEventListener("pointercancel", onUp); };
         el.addEventListener("pointermove", onMove);
         el.addEventListener("pointerup", onUp);
         el.addEventListener("pointercancel", onUp);
