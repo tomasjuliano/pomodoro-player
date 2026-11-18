@@ -1361,7 +1361,67 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
       try { (await N.window.isMaximized()) ? await N.window.unmaximize() : await N.window.maximize(); } catch {}
       syncMax();
     };
-    N.window.setDraggableRegion("tbDrag").catch(() => {});
+    // Title-bar drag with Aero Snap behaviour. Windows only snaps windows that keep the thick resize frame (the grey border
+    // we strip), so it is done here: touching the top edge maximizes, and dragging a maximized window restores it.
+    let snapWatch = 0;
+    const dragAndSnap = (x, y) => {
+      // beginDrag hands the drag to Windows' native move loop and its promise does not reliably settle,
+      // so watch the window while it is dragged: resting against the top edge for a moment (or releasing there) maximizes it.
+      N.window.beginDrag(x, y).catch(() => {});
+      clearInterval(snapWatch);
+      const started = Date.now();
+      let lastX = null, lastY = null, still = started, atTopSince = 0, busy = false;
+      const stop = () => clearInterval(snapWatch);
+      // Windows ignores maximize while the mouse still holds the native move loop, so keep asking until it takes
+      // (that happens right after release), and give up if the window leaves the top edge.
+      // A maximize issued mid-drag is undone when the move loop ends, so only stop once it has held for a second.
+      let lastTry = 0, maxSince = 0;
+      const snap = async () => {
+        const now = Date.now();
+        let m = false;
+        try { m = await N.window.isMaximized(); } catch {}
+        if (m) { maxSince = maxSince || now; if (now - maxSince > 1000) { stop(); syncMax(); } return; }
+        maxSince = 0;
+        if (now - lastTry < 250) return;
+        lastTry = now;
+        await N.window.maximize().catch(() => {});
+        syncMax();
+      };
+      // window.screenX/Y go stale during the native move loop, so ask Neutralino for the real position
+      snapWatch = setInterval(async () => {
+        if (busy) return;
+        busy = true;
+        let pos = null;
+        try { pos = await N.window.getPosition(); } catch {}
+        busy = false;
+        if (!pos) return;
+        const now = Date.now();
+        if (pos.x !== lastX || pos.y !== lastY) { lastX = pos.x; lastY = pos.y; still = now; }
+        atTopSince = pos.y <= 10 ? atTopSince || now : 0; // Windows stops the window a few px short of the edge
+        if (atTopSince && now - atTopSince > 300) snap();
+        else if (!atTopSince && now - still > 2500) stop();
+        if (now - started > 30000) stop();
+      }, 80);
+    };
+    $("tbDrag").addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || e.detail > 1) return; // leave double-click to toggle maximize
+      if (!document.documentElement.classList.contains("maximized")) { e.preventDefault(); dragAndSnap(e.screenX, e.screenY); return; }
+      const sx = e.screenX, sy = e.screenY, fracX = e.clientX / window.innerWidth, grabY = e.clientY;
+      const cleanup = () => { window.removeEventListener("pointermove", onMove); window.removeEventListener("pointerup", cleanup); };
+      const onMove = async (ev) => {
+        if (Math.abs(ev.screenX - sx) + Math.abs(ev.screenY - sy) < 6) return;
+        cleanup();
+        try {
+          await N.window.unmaximize();
+          const size = await N.window.getSize();
+          await N.window.move(Math.round(ev.screenX - size.width * fracX), Math.round(ev.screenY - grabY));
+        } catch {}
+        syncMax();
+        dragAndSnap(ev.screenX, ev.screenY);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", cleanup);
+    });
     $("tbDrag").addEventListener("dblclick", toggleMax);
     $("tbMin").addEventListener("click", () => N.window.minimize().catch(() => {}));
     $("tbMax").addEventListener("click", toggleMax);
