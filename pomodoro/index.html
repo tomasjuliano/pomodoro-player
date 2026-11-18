@@ -782,8 +782,6 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     if (!list) return "";
     if (list === "LM" || list === "LL" || list === "WL")
       return "Ese link es de tus Me gusta o Ver más tarde, que son privados y YouTube no deja reproducirlos fuera del sitio. Creá una playlist pública o no listada con esos temas y pegá su link.";
-    if (/^(PL|FL|UU)/.test(list) && list.length < 18)
-      return `El link parece incompleto: el ID de la playlist (${list}) tiene ${list.length} caracteres y los de YouTube tienen 18 o 34. Copiá el link de nuevo desde Compartir y después Copiar vínculo.`;
     return "";
   }
   function parseSpotify(raw) {
