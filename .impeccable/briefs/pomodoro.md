@@ -1,23 +1,25 @@
 # Surface brief: pomodoro/index.html
 
-Mode: Operate. Single working screen.
-Audience: Tomás, studying or working with the app open in a side tab or half screen, glancing at it peripherally; day and night (follows system theme).
+Mode: Operate. Single working screen, also shipped as a Neutralino desktop window.
+Audience: Tomás, studying or working with the app open in a side tab, half screen or its own window, glancing at it peripherally; day and night (follows system theme). Listens to guitar backing-track playlists (Hendrix, Clapton, Patricio Rey, Airbag) while working.
 Job: run a session of focus blocks and breaks with music that follows the timer, and an alarm at each phase end.
-Priorities in a block: time remaining, music controls, session progress. Plan editing can live out of the way.
+Priorities in a block: time remaining, music controls, session progress. Plan and alarm live in a side panel.
 Constraints: YouTube/Spotify iframes must stay visible (YouTube player ≥200×200). Served from localhost. No third-party binaries.
+
+History: v1 "Campo de color" (Swiss drenched field) shipped and was judged not striking enough by the user; it is the anti-reference for v2.
 
 ## Direction contract
 
-THESIS: The state is the whole surface. A side tab read from the corner of the eye has to say "focus", "break" or "paused" before any word is read, so the page refuses the category default of a neutral screen with a coloured ring in the middle.
+THESIS: The session is a record. The screen is an LP cover from the hard-bop sleeve tradition (Reid Miles era): flat ink fields, enormous stacked condensed type, a disc sliding out of the sleeve. It refuses the category default of a centred ring timer on a neutral card.
 
-OWN-WORLD: Swiss poster colour fields. Focus is a drenched tomato red, rest a deep green, paused and idle the same hues drained toward slate, finished a deep ink. Dark theme deepens each field instead of switching to grey. One family, Archivo, with its width axis: condensed heavy numerals for the clock, normal width for UI. Ink on field is white-ish; the lower sheet is a warm off-white (or near-black in dark) with field-coloured accents.
+OWN-WORLD: Two-ink sleeves that swap per phase. Focus: electric ultramarine with white type and a yellow label. Break: mustard with black type and a blue label. Paused/idle: the same hue drained. Finished: bone paper with black type. Dark theme deepens each ink. Big Shoulders Display (900, condensed) for the stacked words and the clock, Barlow for UI text. Liner-notes sheet in bone/ink for setup.
 
-STORY: Glance: know the phase and the minutes left. Reach: pause, skip track, change volume without scrolling. Plan: open the sheet below to set blocks and alarm.
+STORY: Glance: the sleeve colour says focus or break, the giant clock says how long. Reach: transport-style controls for timer and music. Read the tracklist to know where the session stands.
 
-FIRST VIEWPORT: Top line with phase word and block count. Giant left-aligned clock (about a quarter of the width), end time and what comes next under it. Start/pause, skip and reset. The session ruler across the width. The music bar (now playing, prev/play/next, volume) closes the field. Player, link input, plan and alarm sit in the sheet below (or in a right column on wide screens).
+FIRST VIEWPORT: The cover: small "Lado A · N temas" line, the phase word stacked huge, the clock huge below it, end time and what comes next, timer controls, Plan/Alarma at the cover's top right. A vinyl disc peeks out of the cover's right edge and spins while the timer runs. Under the cover the tracklist (each block as a track with leader dots, duration and state), then the "Sonando" music bar. Player and queue sit in the liner-notes sheet beside or below.
 
-FORM: Swiss poster field, rank 1 of my list. seed: none (unavailable) — impeccable launcher not run by user choice; direction chosen by the user from three presented options.
+FORM: LP sleeve (hard-bop cover typography), rank 1 of my list. seed: none (unavailable) — impeccable launcher not run by user choice; direction chosen by the user from three presented options (Tapa de disco, Afiche de recital, Tablero de estadio).
 
-Signature move: the session ruler, a measuring tape with minute ticks where focus blocks are tall bars and breaks are short ones, filled as time passes, with a now marker. Signature motion: the field colour crossfades when the phase changes.
+Signature move: the vinyl that slides half out of the sleeve and spins at 33⅓ rpm only while time runs; the tracklist with the current track inverted and filling as it plays.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

@@ -42,7 +42,7 @@ La configuración se guarda en el `localStorage` del navegador.
 
 ## Diseño
 
-Dirección "Campo de color": toda la pantalla toma el color de la fase (rojo en foco, verde en descanso, apagado en pausa) para leer el estado de reojo. Tokens y reglas en [DESIGN.md](DESIGN.md).
+Dirección "Tapa de disco": el timer es la tapa de un LP (azul y blanco en foco, mostaza y negro en descanso, apagada en pausa), con un vinilo que sale de la tapa y gira mientras corre el tiempo, y la sesión como lista de temas "Lado A". Tokens y reglas en [DESIGN.md](DESIGN.md).
 
 El repo incluye dos skills de Claude Code en `.claude/skills/`: `frontend-design` (de [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)) e `impeccable` (de [pbakaus/impeccable](https://github.com/pbakaus/impeccable), Apache 2.0).
 
