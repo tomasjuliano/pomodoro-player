@@ -38,7 +38,7 @@ One family, **Archivo** (Google Fonts, variable `wdth` 62–125, `wght` 100–90
 - **Session ruler** (signature): segments sized by duration; focus blocks 34px tall with solid border, breaks 14px dashed; fill = elapsed; SVG minute ticks (every 5 min taller; 5/30 when the session passes 4 h); block numbers below; a now marker with a notch.
 - **Buttons on field**: pill. Main = ink fill with field-coloured text; secondary = 1.5px ink outline; icon buttons 44px. Hover = 14% ink wash.
 - **Sheet buttons**: `btn-solid` (accent fill), `btn-quiet` (sheet-2 with line border). Segmented switch for YouTube/Spotify.
-- **Disclosure**: plan and alarm live in `<details>` with a summary line (totals / sound).
+- **Side panel**: "Plan" and "Alarma" buttons in the top line open a panel that slides in from the right (sheet colours, 460px, dimmed backdrop) with a Plan de bloques / Alarma switch; closes with X, Esc or a click outside, and returns focus to the button that opened it.
 - Icons: inline SVG, filled 24-grid, one weight.
 
 ## Browser surfaces
