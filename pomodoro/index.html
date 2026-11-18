@@ -777,6 +777,15 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     if (!v && !list) return null;
     return { v, list };
   }
+  // Returns an error message when a playlist id cannot be valid, else "".
+  function checkListId(list) {
+    if (!list) return "";
+    if (list === "LM" || list === "LL" || list === "WL")
+      return "Ese link es de tus Me gusta o Ver más tarde, que son privados y YouTube no deja reproducirlos fuera del sitio. Creá una playlist pública o no listada con esos temas y pegá su link.";
+    if (/^(PL|FL|UU)/.test(list) && list.length < 18)
+      return `El link parece incompleto: el ID de la playlist (${list}) tiene ${list.length} caracteres y los de YouTube tienen 18 o 34. Copiá el link de nuevo desde Compartir y después Copiar vínculo.`;
+    return "";
+  }
   function parseSpotify(raw) {
     const s = raw.trim();
     let m = s.match(/^spotify:(playlist|album|track|episode|show|artist):([A-Za-z0-9]+)$/);
@@ -786,11 +795,17 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
   }
 
   /* ---- YouTube ---- */
-  let ytApi = null, yt = null, ytPlaying = false, ytShuffle = false, ytWantPlay = false;
+  let ytApi = null, yt = null, ytPlaying = false, ytShuffle = false, ytWantPlay = false, ytReady = false, ytWatch = 0, ytFailed = false;
   function loadYTApi() {
     if (ytApi) return ytApi;
     ytApi = new Promise((resolve) => {
-      window.onYouTubeIframeAPIReady = () => resolve(window.YT);
+      let poll = 0;
+      const done = () => { clearInterval(poll); resolve(window.YT); };
+      if (window.YT && window.YT.loaded && window.YT.Player) return done();
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { if (typeof prev === "function") prev(); done(); };
+      // Fallback: the ready callback does not always fire (e.g. cached widget script), so also poll.
+      poll = setInterval(() => { if (window.YT && window.YT.loaded && window.YT.Player) done(); }, 300);
       const s = document.createElement("script");
       s.src = "https://www.youtube.com/iframe_api";
       s.onerror = () => showErr("No se pudo cargar YouTube. Revisá la conexión y volvé a cargar el link.");
@@ -802,6 +817,8 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     if (!yt) $("ytEmpty").innerHTML = "<strong>Cargando YouTube…</strong>";
     const YT = await loadYTApi();
     if (yt) { try { yt.destroy(); } catch {} yt = null; }
+    ytReady = false; ytFailed = false; clearTimeout(ytWatch);
+    updateNow();
     const holder = $("ytHolder");
     holder.innerHTML = '<div id="ytPlayer"></div>';
     holder.hidden = false; holder.style.height = "100%";
@@ -809,12 +826,13 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     ytPlaying = false; ytShuffle = false;
     const vars = { playsinline: 1, rel: 0, origin: location.origin };
     if (ref.list) { vars.listType = "playlist"; vars.list = ref.list; }
+    const opts = { width: "100%", height: "100%", playerVars: vars };
+    if (ref.v) opts.videoId = ref.v; // passing an undefined videoId makes the API throw "Invalid video id"
     yt = new YT.Player("ytPlayer", {
-      width: "100%", height: "100%",
-      videoId: ref.v,
-      playerVars: vars,
+      ...opts,
       events: {
         onReady: (e) => {
+          ytReady = true;
           e.target.setVolume(MS.vol);
           if (ytWantPlay || (settings.follow && T.running && T.segs[T.i].kind === "work")) e.target.playVideo();
           ytWantPlay = false;
@@ -828,6 +846,21 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
         },
       },
     });
+    updateNow();
+    // A private, deleted or mistyped playlist leaves an empty player without any error event (often not even onReady).
+    if (ref.list && !ref.v) {
+      const p = yt;
+      ytWatch = setTimeout(() => {
+        if (yt !== p) return;
+        const pl = ytReady && p.getPlaylist ? p.getPlaylist() : null;
+        const d = ytReady && p.getVideoData ? p.getVideoData() : null;
+        if ((!pl || !pl.length) && !(d && d.title)) {
+          showErr("YouTube no devolvió esa playlist. Puede ser privada, estar borrada o el link estar incompleto. Fijate que sea pública o no listada y copiá el link de nuevo.");
+          ytFailed = true;
+          updateNow();
+        }
+      }, 8000);
+    }
   }
 
   /* ---- Spotify ---- */
@@ -900,7 +933,9 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     document.body.dataset.music = playing ? "playing" : "stopped";
     $("mPlayIcon").innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
     let title = "Sin música", src = "Cargá una playlist abajo";
-    if (tab === "yt" && yt && yt.getVideoData) {
+    if (tab === "yt" && yt && ytFailed) { title = "Playlist no disponible"; src = "YouTube"; }
+    else if (tab === "yt" && yt && !ytReady) { title = "Cargando…"; src = "YouTube"; }
+    else if (tab === "yt" && yt && yt.getVideoData) {
       const d = yt.getVideoData();
       if (d && d.title) {
         title = d.title;
@@ -945,7 +980,10 @@ kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5
     if (tab === "yt") {
       const ref = parseYouTube(raw);
       if (!ref) { showErr("Ese link no es de YouTube. Pegá la URL de una playlist (con list=) o de un video."); return; }
-      MS.yt = raw.trim(); saveMusic(); ytLoad(ref);
+      const bad = checkListId(ref.list);
+      if (bad) { showErr(bad); return; }
+      MS.yt = raw.trim(); saveMusic();
+      ytLoad(ref).catch((e) => showErr("YouTube no pudo abrir ese link (" + (e && e.message ? e.message : e) + "). Probá copiarlo de nuevo."));
     } else {
       const uri = parseSpotify(raw);
       if (!uri) { showErr("Ese link no es de Spotify. En Spotify usá Compartir y después Copiar enlace."); return; }
