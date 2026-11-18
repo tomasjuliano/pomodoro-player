@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Foco y Música</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: two working columns — timer + sequence on the left, music + plan editor on the right; stacks at phone width. */
+:root {
+  --bg: #edf0f4;
+  --surface: #ffffff;
+  --surface-2: #f5f7fa;
+  --line: #d9dfe7;
+  --ink: #17202b;
+  --muted: #5d6978;
+  --focus: #d9482b;
+  --focus-soft: #fbe3dc;
+  --rest: #24805f;
+  --rest-soft: #d8efe5;
+  --track: #dfe4ea;
+  --shadow: 0 1px 2px rgba(23,32,43,.06), 0 8px 24px rgba(23,32,43,.06);
+  --f-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1319; --surface: #161d25; --surface-2: #1c2530; --line: #2a3542;
+    --ink: #e7ecf1; --muted: #93a0ae; --focus: #ff6d4d; --focus-soft: #3a211b;
+    --rest: #4cc699; --rest-soft: #16322a; --track: #26303c;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1319; --surface: #161d25; --surface-2: #1c2530; --line: #2a3542;
+  --ink: #e7ecf1; --muted: #93a0ae; --focus: #ff6d4d; --focus-soft: #3a211b;
+  --rest: #4cc699; --rest-soft: #16322a; --track: #26303c;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 14px/1.5 var(--f-body);
+  padding-block: 24px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body[data-phase="work"] { --phase: var(--focus); --phase-soft: var(--focus-soft); }
+body[data-phase="rest"] { --phase: var(--rest); --phase-soft: var(--rest-soft); }
+body { --phase: var(--focus); --phase-soft: var(--focus-soft); }
+
+.app { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+@media (max-width: 900px) { .app { grid-template-columns: minmax(0, 1fr); } }
+
+header.top { max-width: 1180px; margin: 0 auto 18px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+header.top h1 { font: 700 22px/1.1 var(--f-display); margin: 0; letter-spacing: -.01em; }
+header.top .hint { color: var(--muted); font-size: 12.5px; }
+kbd { font: 500 11px var(--f-mono); padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 20px; min-width: 0; }
+.col { display: grid; gap: 20px; min-width: 0; }
+h2 { font: 600 13px/1 var(--f-display); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 14px; }
+
+/* ---------- Timer ---------- */
+.timer { display: grid; justify-items: center; gap: 18px; padding-block: 28px 22px; }
+.phase-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--phase-soft); color: var(--phase); font: 600 13px var(--f-display); letter-spacing: .02em; }
+.phase-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+body[data-state="running"] .phase-chip::before { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+.ring-wrap { position: relative; width: min(330px, 78vw); aspect-ratio: 1; max-width: 100%; }
+.ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--track); stroke-width: 10; }
+.ring-bar { fill: none; stroke: var(--phase); stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset .3s linear, stroke .4s; }
+.ring-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 4px; }
+.clock { font: 700 clamp(52px, 13vw, 76px)/1 var(--f-mono); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.sub { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+button { font: 500 14px var(--f-body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--phase); outline-offset: 2px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.primary { background: var(--phase); border-color: var(--phase); color: #fff; font-weight: 600; padding: 11px 26px; font-size: 15px; min-width: 150px; justify-content: center; }
+button.primary:hover { filter: brightness(1.06); }
+button.icon { padding: 9px 11px; }
+button.ghost { background: transparent; }
+svg.i { width: 16px; height: 16px; fill: currentColor; flex: none; }
+
+/* Sequence strip */
+.seq { width: 100%; display: grid; gap: 8px; }
+.seq-head { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.strip { display: flex; gap: 3px; height: 14px; width: 100%; }
+.seg { position: relative; border-radius: 4px; background: var(--track); overflow: hidden; min-width: 4px; }
+.seg > i { position: absolute; inset: 0 auto 0 0; width: 0; }
+.seg.work > i { background: var(--focus); }
+.seg.rest > i { background: var(--rest); }
+.seg.work { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--focus) 35%, transparent); }
+.seg.rest { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rest) 35%, transparent); }
+.seg.current { outline: 2px solid var(--ink); outline-offset: 1px; }
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.legend .lw::before { background: var(--focus); }
+.legend .lr::before { background: var(--rest); }
+
+/* ---------- Settings rows ---------- */
+.opts { display: grid; gap: 10px; }
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.opt label { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--phase); }
+input[type="range"] { accent-color: var(--phase); width: 130px; }
+select, input[type="text"], input[type="url"], input[type="number"] {
+  font: 400 14px var(--f-body); color: var(--ink); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; min-width: 0;
+}
+input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: center; padding: 7px 4px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.grow { flex: 1 1 200px; }
+
+/* ---------- Music ---------- */
+.tabs { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 3px; }
+.tabs button { border: 0; background: transparent; padding: 6px 14px; border-radius: 7px; }
+.tabs button[aria-selected="true"] { background: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
+.music-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.music-head h2 { margin: 0; }
+.player-box { margin-top: 14px; border-radius: 12px; overflow: hidden; background: var(--surface-2); border: 1px dashed var(--line); }
+.player-box.yt { aspect-ratio: 16 / 9; max-width: 100%; }
+.player-box iframe { display: block; width: 100%; height: 100%; border: 0; }
+.player-box.sp { min-height: 152px; }
+.player-empty { display: grid; place-content: center; text-align: center; padding: 30px 16px; color: var(--muted); min-height: 150px; gap: 4px; }
+.player-empty strong { color: var(--ink); font-weight: 600; }
+.now { margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.now-title { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 160px; }
+.note { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
+.err { color: var(--focus); font-size: 13px; margin: 8px 0 0; }
+.saved { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.pill { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 12.5px; overflow: hidden; }
+.pill button { border: 0; border-radius: 0; background: transparent; padding: 5px 10px; font-size: 12.5px; }
+.pill button + button { padding: 5px 8px; color: var(--muted); border-left: 1px solid var(--line); }
+.pill .src { font: 700 10px var(--f-mono); color: var(--muted); margin-right: 2px; }
+
+/* ---------- Plan editor ---------- */
+.presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.presets button { font-size: 12.5px; padding: 6px 10px; }
+.gen { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 12px; background: var(--surface-2); border-radius: 10px; margin-bottom: 14px; font-size: 13px; }
+.gen label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.blocks { display: grid; gap: 6px; }
+.block { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.block .n { font: 700 13px var(--f-mono); color: var(--muted); text-align: center; }
+.block .fields { display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); }
+.block .fields label { display: inline-flex; align-items: center; gap: 6px; }
+.block .fields .w { color: var(--focus); font-weight: 600; }
+.block .fields .r { color: var(--rest); font-weight: 600; }
+.block.done { opacity: .5; }
+.block.active { border-color: var(--phase); background: var(--phase-soft); }
+.plan-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.totals { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.lock { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body data-phase="work" data-state="idle">
+
+<header class="top">
+  <h1>Foco y Música</h1>
+  <span class="hint"><kbd>Espacio</kbd> iniciar / pausar · <kbd>S</kbd> saltar fase · <kbd>M</kbd> música play / pausa</span>
+</header>
+
+<main class="app">
+  <!-- LEFT: timer -->
+  <div class="col">
+    <section class="panel timer" aria-label="Temporizador">
+      <span class="phase-chip" id="phaseChip">Listo para arrancar</span>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-track" cx="60" cy="60" r="54"></circle>
+          <circle class="ring-bar" id="ringBar" cx="60" cy="60" r="54"></circle>
+        </svg>
+        <div class="ring-center">
+          <div class="clock" id="clock" aria-live="off">25:00</div>
+          <div class="sub" id="clockSub">Bloque 1 de 4</div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="icon ghost" id="btnReset" title="Reiniciar sesión" aria-label="Reiniciar sesión">
+          <svg class="i" viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>
+        </button>
+        <button class="primary" id="btnStart">
+          <svg class="i" viewBox="0 0 24 24" id="startIcon"><path d="M8 5v14l11-7z"/></svg>
+          <span id="startLabel">Iniciar</span>
+        </button>
+        <button class="icon ghost" id="btnSkip" title="Saltar a la siguiente fase" aria-label="Saltar fase">
+          <svg class="i" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z"/></svg>
+        </button>
+      </div>
+
+      <div class="seq">
+        <div class="seq-head">
+          <span id="seqLeft">Quedan 1 h 55 min</span>
+          <span id="seqEnd">Terminás ≈ --:--</span>
+        </div>
+        <div class="strip" id="strip"></div>
+        <div class="legend"><span class="lw">Foco</span><span class="lr">Descanso</span></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Alarma y comportamiento">
+      <h2>Alarma y comportamiento</h2>
+      <div class="opts">
+        <div class="opt">
+          <label for="alarmSound">Sonido al terminar cada fase</label>
+          <div class="row">
+            <select id="alarmSound">
+              <option value="bell">Campana</option>
+              <option value="digital">Digital</option>
+              <option value="chime">Tres notas</option>
+              <option value="gong">Gong grave</option>
+            </select>
+            <button id="btnTestAlarm" class="icon" title="Probar sonido" aria-label="Probar sonido">
+              <svg class="i" viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="opt">
+          <label for="alarmVol">Volumen de la alarma</label>
+          <input type="range" id="alarmVol" min="0" max="100" value="80">
+        </div>
+        <div class="opt">
+          <label for="alarmReps">Repeticiones</label>
+          <input type="number" id="alarmReps" min="1" max="10" value="3">
+        </div>
+        <div class="opt"><label><input type="checkbox" id="optAuto" checked> Pasar sola a la siguiente fase</label></div>
+        <div class="opt"><label><input type="checkbox" id="optFollow" checked> La música arranca con cada bloque de foco</label></div>
+        <div class="opt"><label><input type="checkbox" id="optPauseRest" checked> Pausar la música en los descansos</label></div>
+        <div class="opt">
+          <label><input type="checkbox" id="optNotify"> Notificación del sistema al terminar</label>
+          <span class="note" id="notifyState" style="margin:0"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- RIGHT: music + plan -->
+  <div class="col">
+    <section class="panel" aria-label="Música">
+      <div class="music-head">
+        <h2>Música</h2>
+        <div class="tabs" role="tablist">
+          <button role="tab" id="tabYT" aria-selected="true">YouTube</button>
+          <button role="tab" id="tabSP" aria-selected="false">Spotify</button>
+        </div>
+      </div>
+      <form class="row" id="musicForm">
+        <input class="grow" type="url" id="musicUrl" placeholder="Pegá el link de una playlist o video de YouTube" autocomplete="off">
+        <button type="submit">Cargar</button>
+        <button type="button" id="btnSave" title="Guardar en favoritos">Guardar</button>
+      </form>
+      <p class="err" id="musicErr" hidden></p>
+      <div class="saved" id="saved"></div>
+
+      <div class="player-box yt" id="ytBox">
+        <div class="player-empty" id="ytEmpty">
+          <strong>Ninguna playlist cargada</strong>
+          <span>Ejemplo: youtube.com/playlist?list=…</span>
+        </div>
+        <div id="ytHolder" hidden></div>
+      </div>
+      <div class="player-box sp" id="spBox" hidden>
+        <div class="player-empty" id="spEmpty">
+          <strong>Ninguna playlist cargada</strong>
+          <span>Ejemplo: open.spotify.com/playlist/…</span>
+        </div>
+        <div id="spHolder"></div>
+      </div>
+
+      <div class="now">
+        <span class="now-title" id="nowTitle">Sin reproducción</span>
+        <div class="row">
+          <button class="icon" id="mPrev" title="Anterior" aria-label="Anterior"><svg class="i" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+          <button class="icon" id="mPlay" title="Play / pausa" aria-label="Play o pausa"><svg class="i" viewBox="0 0 24 24" id="mPlayIcon"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="icon" id="mNext" title="Siguiente" aria-label="Siguiente"><svg class="i" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+          <button class="icon" id="mShuffle" title="Aleatorio" aria-label="Aleatorio" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M10.6 9.2 5.4 4 4 5.4l5.2 5.2 1.4-1.4zM14.5 4l2 2L4 18.6 5.4 20 18 7.5l2 2V4h-5.5zm.3 9.4-1.4 1.4 3.1 3.1-2 2.1H20v-5.5l-2 2-3.2-3.1z"/></svg></button>
+          <input type="range" id="mVol" min="0" max="100" value="60" title="Volumen" aria-label="Volumen de la música">
+        </div>
+      </div>
+      <p class="note" id="musicNote">Los controles de anterior, siguiente, aleatorio y volumen funcionan con YouTube.</p>
+    </section>
+
+    <section class="panel" aria-label="Plan de bloques">
+      <h2>Plan de bloques</h2>
+      <p class="lock" id="lockMsg" hidden>La sesión está en curso. Reiniciala para editar el plan.</p>
+      <div class="presets" id="presets">
+        <button data-p="4,25,5,15">Clásico 4 × 25</button>
+        <button data-p="3,50,10,20">3 × 50</button>
+        <button data-p="2,90,20,0">2 × 90</button>
+        <button data-p="6,30,5,15">6 × 30</button>
+      </div>
+      <div class="gen">
+        <label><input type="number" id="gCount" min="1" max="20" value="4"> bloques de</label>
+        <label><input type="number" id="gWork" min="1" max="240" value="25"> min</label>
+        <label>descanso <input type="number" id="gRest" min="0" max="120" value="5"> min</label>
+        <label>último <input type="number" id="gLast" min="0" max="120" value="15"> min</label>
+        <button id="btnGen">Aplicar</button>
+      </div>
+      <div class="blocks" id="blocks"></div>
+      <div class="plan-foot">
+        <button id="btnAdd">+ Agregar bloque</button>
+        <span class="totals" id="totals"></span>
+      </div>
+      <p class="note">Un descanso de 0 min se saltea.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("fym:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem("fym:" + k, JSON.stringify(v)); } catch {} },
+  };
+  const clampInt = (v, lo, hi, d) => { v = parseInt(v, 10); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+
+  /* =================== Settings =================== */
+  const settings = Object.assign({
+    sound: "bell", vol: 80, reps: 3, auto: true, follow: true, pauseRest: true, notify: false,
+  }, store.get("settings", {}));
+  const bindSetting = (id, key, prop = "checked", parse = (x) => x) => {
+    const el = $(id);
+    el[prop] = settings[key];
+    el.addEventListener("input", () => { settings[key] = parse(el[prop]); store.set("settings", settings); });
+  };
+  bindSetting("alarmSound", "sound", "value");
+  bindSetting("alarmVol", "vol", "value", Number);
+  bindSetting("alarmReps", "reps", "value", (v) => clampInt(v, 1, 10, 3));
+  bindSetting("optAuto", "auto");
+  bindSetting("optFollow", "follow");
+  bindSetting("optPauseRest", "pauseRest");
+
+  const notifyBox = $("optNotify");
+  const notifyState = $("notifyState");
+  const canNotify = "Notification" in window;
+  function refreshNotify() {
+    if (!canNotify) { notifyBox.disabled = true; notifyState.textContent = "No disponible en este navegador"; return; }
+    notifyBox.checked = settings.notify && Notification.permission === "granted";
+    notifyState.textContent = Notification.permission === "denied" ? "Bloqueadas en el navegador" : "";
+  }
+  notifyBox.addEventListener("change", async () => {
+    if (notifyBox.checked && Notification.permission !== "granted") {
+      try { await Notification.requestPermission(); } catch {}
+    }
+    settings.notify = notifyBox.checked && Notification.permission === "granted";
+    store.set("settings", settings);
+    refreshNotify();
+  });
+  refreshNotify();
+
+  /* =================== Alarm (Web Audio) =================== */
+  let actx = null;
+  function audio() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } }
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+  function tone(ctx, out, { f, t, d, type = "sine", g = 0.5, attack = 0.005 }) {
+    const o = ctx.createOscillator(), a = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    a.gain.setValueAtTime(0.0001, t);
+    a.gain.exponentialRampToValueAtTime(g, t + attack);
+    a.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(a).connect(out); o.start(t); o.stop(t + d + 0.05);
+  }
+  const SOUNDS = {
+    bell:    { len: 1.6, play(c, o, t) { [[880,1,.5],[1760,.6,.25],[2640,.35,.12],[1320,.8,.2]].forEach(([f,dm,g]) => tone(c,o,{f,t,d:1.5*dm,g})); } },
+    digital: { len: 1.0, play(c, o, t) { [0, .14, .42, .56].forEach((s) => tone(c,o,{f:1960,t:t+s,d:.1,type:"square",g:.18})); } },
+    chime:   { len: 1.3, play(c, o, t) { [[659,0],[784,.18],[1047,.36]].forEach(([f,s]) => tone(c,o,{f,t:t+s,d:.9,type:"triangle",g:.45})); } },
+    gong:    { len: 2.6, play(c, o, t) { [[110,.6],[220,.35],[331,.2],[523,.08]].forEach(([f,g]) => tone(c,o,{f,t,d:2.5,g,attack:.02})); } },
+  };
+  function playAlarm(final = false) {
+    const ctx = audio(); if (!ctx) return 0;
+    const s = SOUNDS[settings.sound] || SOUNDS.bell;
+    const out = ctx.createGain();
+    out.gain.value = Math.pow(settings.vol / 100, 1.6);
+    out.connect(ctx.destination);
+    const reps = settings.reps + (final ? 2 : 0);
+    const t0 = ctx.currentTime + 0.05;
+    for (let i = 0; i < reps; i++) s.play(ctx, out, t0 + i * s.len);
+    return reps * s.len;
+  }
+  $("btnTestAlarm").addEventListener("click", () => { const secs = playAlarm(); music.duck(secs); });
+
+  function notify(title, body) {
+    if (!settings.notify || !canNotify || Notification.permission !== "granted") return;
+    try { const n = new Notification(title, { body, tag: "fym", renotify: true }); n.onclick = () => { window.focus(); n.close(); }; } catch {}
+  }
+
+  /* =================== Plan =================== */
+  let plan = store.get("plan", null);
+  if (!Array.isArray(plan) || !plan.length) plan = makePlan(4, 25, 5, 15);
+  function makePlan(n, w, r, last) {
+    return Array.from({ length: n }, (_, i) => ({ work: w, rest: i === n - 1 ? last : r }));
+  }
+  function segmentsOf(p) {
+    const s = [];
+    p.forEach((b, i) => {
+      s.push({ kind: "work", block: i, ms: b.work * 60000 });
+      if (b.rest > 0) s.push({ kind: "rest", block: i, ms: b.rest * 60000 });
+    });
+    return s;
+  }
+  const fmtDur = (ms) => {
+    const m = Math.round(ms / 60000), h = Math.floor(m / 60), mm = m % 60;
+    return h ? `${h} h ${String(mm).padStart(2, "0")} min` : `${mm} min`;
+  };
+  const fmtClock = (ms) => {
+    const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return (h ? h + ":" + String(m).padStart(2, "0") : String(m).padStart(2, "0")) + ":" + String(sec).padStart(2, "0");
+  };
+  const fmtTime = (d) => d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+
+  function renderPlan() {
+    const box = $("blocks");
+    const locked = T.started && !T.finished;
+    box.innerHTML = "";
+    plan.forEach((b, i) => {
+      const row = document.createElement("div");
+      row.className = "block";
+      if (locked) {
+        const cur = T.segs[T.i];
+        if (cur && cur.block === i) row.classList.add("active");
+        else if (cur && i < cur.block) row.classList.add("done");
+      }
+      row.innerHTML = `
+        <span class="n">${i + 1}</span>
+        <div class="fields">
+          <label><span class="w">Foco</span><input type="number" min="1" max="240" value="${b.work}" id="bw${i}" aria-label="Minutos de foco del bloque ${i + 1}"> min</label>
+          <label><span class="r">Descanso</span><input type="number" min="0" max="120" value="${b.rest}" id="br${i}" aria-label="Minutos de descanso del bloque ${i + 1}"> min</label>
+        </div>
+        <button class="icon ghost" title="Quitar bloque" aria-label="Quitar bloque ${i + 1}" ${plan.length < 2 ? "disabled" : ""}>
+          <svg class="i" viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7L6 7zm3-3h6l1 2h4v2H4V6h4l1-2z"/></svg>
+        </button>`;
+      const [w, r] = row.querySelectorAll("input");
+      w.addEventListener("change", () => { b.work = clampInt(w.value, 1, 240, 25); w.value = b.work; planChanged(); });
+      r.addEventListener("change", () => { b.rest = clampInt(r.value, 0, 120, 5); r.value = b.rest; planChanged(); });
+      row.querySelector("button").addEventListener("click", () => { plan.splice(i, 1); planChanged(true); });
+      row.querySelectorAll("input,button").forEach((el) => { if (locked) el.disabled = true; });
+      box.appendChild(row);
+    });
+    $("btnAdd").disabled = locked;
+    $("btnGen").disabled = locked;
+    document.querySelectorAll("#presets button, .gen input").forEach((b) => (b.disabled = locked));
+    $("lockMsg").hidden = !locked;
+    const focus = plan.reduce((a, b) => a + b.work, 0) * 60000;
+    const total = plan.reduce((a, b) => a + b.work + b.rest, 0) * 60000;
+    $("totals").textContent = `${plan.length} ${plan.length === 1 ? "bloque" : "bloques"} · ${fmtDur(focus)} de foco · ${fmtDur(total)} en total`;
+  }
+  function planChanged(rerender) {
+    store.set("plan", plan);
+    T.segs = segmentsOf(plan);
+    resetTimer();
+    if (rerender) renderPlan(); else renderPlanTotalsOnly();
+  }
+  function renderPlanTotalsOnly() { renderPlan(); }
+
+  $("btnAdd").addEventListener("click", () => {
+    const last = plan[plan.length - 1] || { work: 25, rest: 5 };
+    plan.push({ work: last.work, rest: last.rest });
+    planChanged(true);
+  });
+  $("btnGen").addEventListener("click", () => {
+    plan = makePlan(clampInt($("gCount").value, 1, 20, 4), clampInt($("gWork").value, 1, 240, 25),
+                    clampInt($("gRest").value, 0, 120, 5), clampInt($("gLast").value, 0, 120, 15));
+    planChanged(true);
+  });
+  document.querySelectorAll("#presets button").forEach((btn) => btn.addEventListener("click", () => {
+    const [n, w, r, l] = btn.dataset.p.split(",").map(Number);
+    $("gCount").value = n; $("gWork").value = w; $("gRest").value = r; $("gLast").value = l;
+    plan = makePlan(n, w, r, l);
+    planChanged(true);
+  }));
+
+  /* =================== Timer =================== */
+  const T = { segs: segmentsOf(plan), i: 0, remaining: 0, endAt: 0, running: false, started: false, finished: false };
+  const CIRC = 2 * Math.PI * 54;
+  $("ringBar").style.strokeDasharray = CIRC;
+
+  function resetTimer() {
+    T.i = 0; T.running = false; T.started = false; T.finished = false;
+    T.remaining = T.segs[0].ms;
+    render();
+  }
+  function currentLeft() { return T.running ? Math.max(0, T.endAt - Date.now()) : T.remaining; }
+
+  function start() {
+    audio(); // unlock audio on a user gesture
+    if (T.finished) { resetTimer(); }
+    T.started = true; T.running = true;
+    T.endAt = Date.now() + T.remaining;
+    onPhaseRun();
+    renderPlan(); render();
+  }
+  function pause() {
+    T.remaining = currentLeft(); T.running = false;
+    if (settings.follow) music.pause();
+    render();
+  }
+  function onPhaseRun() {
+    const seg = T.segs[T.i];
+    if (!settings.follow) return;
+    if (seg.kind === "work") music.play();
+    else if (settings.pauseRest) music.pause();
+  }
+  function complete(withAlarm) {
+    const seg = T.segs[T.i];
+    const isLast = T.i >= T.segs.length - 1;
+    // Silence music before the alarm when the next phase is a break (or the end)
+    const next = T.segs[T.i + 1];
+    if (settings.follow && (isLast || (next && next.kind === "rest" && settings.pauseRest))) music.pause();
+    if (withAlarm) {
+      const secs = playAlarm(isLast);
+      music.duck(secs);
+      if (isLast) notify("¡Sesión terminada!", `Completaste ${plan.length} bloques de foco.`);
+      else if (seg.kind === "work") notify(`Fin del bloque ${seg.block + 1}`, `Descanso de ${Math.round(next.ms / 60000)} min.`);
+      else notify("Fin del descanso", `Arranca el bloque ${next.block + 1}.`);
+    }
+    if (isLast) {
+      T.finished = true; T.running = false; T.remaining = 0;
+      renderPlan(); render(); return;
+    }
+    T.i++;
+    T.remaining = T.segs[T.i].ms;
+    if (settings.auto && (T.running || !withAlarm)) {
+      T.running = true; T.endAt = Date.now() + T.remaining;
+      // when the alarm rings, wait for it before resuming music
+      const delay = withAlarm ? 1200 : 0;
+      setTimeout(() => { if (T.running) onPhaseRun(); }, delay);
+    } else {
+      T.running = false;
+    }
+    renderPlan(); render();
+  }
+  function skip() {
+    if (T.finished) return;
+    const wasRunning = T.running;
+    T.started = true;
+    complete(false);
+    if (!wasRunning) { T.running = false; T.remaining = T.segs[T.i] ? T.segs[T.i].ms : 0; render(); }
+  }
+
+  $("btnStart").addEventListener("click", () => (T.running ? pause() : start()));
+  $("btnSkip").addEventListener("click", skip);
+  $("btnReset").addEventListener("click", () => { if (settings.follow) music.pause(); resetTimer(); renderPlan(); });
+
+  function render() {
+    const seg = T.segs[T.i] || T.segs[T.segs.length - 1];
+    const left = T.finished ? 0 : currentLeft();
+    const phase = T.finished ? "work" : seg.kind;
+    document.body.dataset.phase = phase;
+    document.body.dataset.state = T.running ? "running" : T.finished ? "finished" : T.started ? "paused" : "idle";
+
+    $("clock").textContent = fmtClock(left);
+    const frac = seg.ms ? 1 - left / seg.ms : 1;
+    $("ringBar").style.strokeDashoffset = CIRC * (1 - (T.finished ? 1 : frac));
+
+    const blocks = plan.length;
+    let chip;
+    if (T.finished) chip = "Sesión completa";
+    else if (!T.started) chip = "Listo para arrancar";
+    else if (!T.running) chip = (T.remaining === seg.ms ? "Esperando · " : "En pausa · ") + (seg.kind === "work" ? "Foco" : "Descanso");
+    else chip = seg.kind === "work" ? "Foco" : "Descanso";
+    $("phaseChip").textContent = chip;
+    $("clockSub").textContent = T.finished ? `${blocks} de ${blocks} bloques`
+      : seg.kind === "work" ? `Bloque ${seg.block + 1} de ${blocks}` : `Descanso después del bloque ${seg.block + 1}`;
+
+    $("startLabel").textContent = T.running ? "Pausar" : T.finished ? "Otra vez" : T.started ? "Seguir" : "Iniciar";
+    $("startIcon").innerHTML = T.running ? '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+    $("btnSkip").disabled = T.finished;
+
+    // sequence strip
+    const strip = $("strip");
+    if (strip.childElementCount !== T.segs.length) {
+      strip.innerHTML = "";
+      T.segs.forEach((s) => {
+        const d = document.createElement("div");
+        d.className = "seg " + s.kind; d.style.flex = String(s.ms);
+        d.title = (s.kind === "work" ? `Foco · bloque ${s.block + 1}` : "Descanso") + ` · ${Math.round(s.ms / 60000)} min`;
+        d.appendChild(document.createElement("i"));
+        strip.appendChild(d);
+      });
+    }
+    [...strip.children].forEach((d, k) => {
+      let p = k < T.i ? 1 : k > T.i ? 0 : frac;
+      if (T.finished) p = 1;
+      d.firstChild.style.width = (p * 100).toFixed(2) + "%";
+      d.classList.toggle("current", T.started && !T.finished && k === T.i);
+    });
+    const restMs = T.finished ? 0 : left + T.segs.slice(T.i + 1).reduce((a, s) => a + s.ms, 0);
+    $("seqLeft").textContent = T.finished ? "Sesión terminada" : `Quedan ${fmtDur(restMs)}`;
+    $("seqEnd").textContent = T.finished ? "" : `Terminás ≈ ${fmtTime(new Date(Date.now() + restMs))}`;
+
+    document.title = T.started && !T.finished
+      ? `${fmtClock(left)} · ${seg.kind === "work" ? "Foco " + (seg.block + 1) + "/" + blocks : "Descanso"}`
+      : "Foco y Música";
+  }
+
+  setInterval(() => {
+    if (T.running && Date.now() >= T.endAt) complete(true);
+    else if (T.running) render();
+  }, 250);
+
+  /* =================== Music =================== */
+  const MS = store.get("music", { tab: "yt", yt: "", sp: "", vol: 60, saved: [] });
+  if (!Array.isArray(MS.saved)) MS.saved = [];
+  const saveMusic = () => store.set("music", MS);
+  let tab = MS.tab === "sp" ? "sp" : "yt";
+
+  function parseYouTube(raw) {
+    const s = raw.trim();
+    if (/^[\w-]{11}$/.test(s)) return { v: s };
+    if (/^(PL|UU|OL|RD|LL|FL)[\w-]{10,}$/.test(s)) return { list: s };
+    let u; try { u = new URL(/^https?:/i.test(s) ? s : "https://" + s); } catch { return null; }
+    if (!/(^|\.)youtube\.com$|(^|\.)youtu\.be$|(^|\.)youtube-nocookie\.com$/.test(u.hostname)) return null;
+    const list = u.searchParams.get("list") || undefined;
+    let v = u.searchParams.get("v") || undefined;
+    const m = u.pathname.match(/^\/(?:shorts|embed|live|v)\/([\w-]{11})/);
+    if (m) v = m[1];
+    if (/youtu\.be$/.test(u.hostname)) v = u.pathname.slice(1, 12) || undefined;
+    if (!v && !list) return null;
+    return { v, list };
+  }
+  function parseSpotify(raw) {
+    const s = raw.trim();
+    let m = s.match(/^spotify:(playlist|album|track|episode|show|artist):([A-Za-z0-9]+)$/);
+    if (m) return `spotify:${m[1]}:${m[2]}`;
+    m = s.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(?:embed\/)?(playlist|album|track|episode|show|artist)\/([A-Za-z0-9]+)/i);
+    return m ? `spotify:${m[1]}:${m[2]}` : null;
+  }
+
+  /* ---- YouTube ---- */
+  let ytApi = null, yt = null, ytPlaying = false, ytShuffle = false, ytWantPlay = false;
+  function loadYTApi() {
+    if (ytApi) return ytApi;
+    ytApi = new Promise((resolve) => {
+      window.onYouTubeIframeAPIReady = () => resolve(window.YT);
+      const s = document.createElement("script");
+      s.src = "https://www.youtube.com/iframe_api";
+      s.onerror = () => showErr("No se pudo cargar YouTube. Revisá la conexión.");
+      document.head.appendChild(s);
+    });
+    return ytApi;
+  }
+  async function ytLoad(ref) {
+    if (!yt) $("ytEmpty").innerHTML = "<strong>Cargando YouTube…</strong>";
+    const YT = await loadYTApi();
+    if (yt) { try { yt.destroy(); } catch {} yt = null; }
+    const holder = $("ytHolder");
+    holder.innerHTML = '<div id="ytPlayer"></div>';
+    holder.hidden = false; holder.style.height = "100%";
+    $("ytEmpty").hidden = true;
+    ytPlaying = false; ytShuffle = false;
+    const vars = { playsinline: 1, rel: 0, origin: location.origin };
+    if (ref.list) { vars.listType = "playlist"; vars.list = ref.list; }
+    yt = new YT.Player("ytPlayer", {
+      width: "100%", height: "100%",
+      videoId: ref.v,
+      playerVars: vars,
+      events: {
+        onReady: (e) => {
+          e.target.setVolume(MS.vol);
+          if (ytWantPlay || (settings.follow && T.running && T.segs[T.i].kind === "work")) e.target.playVideo();
+          ytWantPlay = false;
+          updateNow();
+        },
+        onStateChange: (e) => { ytPlaying = e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING; updateNow(); },
+        onError: (e) => {
+          const msg = { 2: "El link no es válido.", 5: "Ese video no se puede reproducir acá.", 100: "El video no existe o es privado.", 101: "El dueño no permite reproducirlo fuera de YouTube.", 150: "El dueño no permite reproducirlo fuera de YouTube.", 153: "YouTube necesita que la página se abra desde un servidor local (no como archivo)." }[e.data];
+          showErr((msg || "Error de YouTube " + e.data) + (ref.list ? " Saltando al siguiente…" : ""));
+          if (ref.list && e.data !== 153) setTimeout(() => yt && yt.nextVideo(), 800);
+        },
+      },
+    });
+  }
+
+  /* ---- Spotify ---- */
+  let spApi = null, sp = null, spPaused = true, spHasPlayed = false, spInfo = "";
+  function loadSPApi() {
+    if (spApi) return spApi;
+    spApi = new Promise((resolve) => {
+      window.onSpotifyIframeApiReady = (api) => resolve(api);
+      const s = document.createElement("script");
+      s.src = "https://open.spotify.com/embed/iframe-api/v1";
+      s.async = true;
+      s.onerror = () => showErr("No se pudo cargar Spotify. Revisá la conexión.");
+      document.head.appendChild(s);
+    });
+    return spApi;
+  }
+  let spCreating = false, spPendingUri = null;
+  async function spLoad(uri) {
+    if (!sp) $("spEmpty").innerHTML = "<strong>Cargando Spotify…</strong>";
+    spPendingUri = uri;
+    const api = await loadSPApi();
+    if (spCreating) return; // the controller being created will pick up spPendingUri
+    spHasPlayed = false; spPaused = true;
+    if (sp) { sp.loadUri(uri); updateNow(); return; }
+    spCreating = true;
+    const holder = $("spHolder");
+    holder.innerHTML = '<div id="spPlayer"></div>';
+    api.createController($("spPlayer"), { uri, width: "100%", height: 352 }, (ctrl) => {
+      sp = ctrl; spCreating = false;
+      $("spEmpty").hidden = true;
+      if (spPendingUri && spPendingUri !== uri) ctrl.loadUri(spPendingUri);
+      ctrl.addListener("playback_update", (e) => {
+        spPaused = !!e.data.isPaused;
+        if (!spPaused) spHasPlayed = true;
+        updateNow();
+      });
+      ctrl.addListener("ready", () => {
+        if (settings.follow && T.running && T.segs[T.i].kind === "work") music.play();
+        updateNow();
+      });
+    });
+  }
+
+  /* ---- unified ---- */
+  const music = {
+    active() { return tab === "yt" ? (yt && yt.playVideo ? "yt" : null) : (sp ? "sp" : null); },
+    play() {
+      const a = this.active();
+      if (a === "yt") yt.playVideo();
+      else if (a === "sp") { spHasPlayed ? sp.resume() : sp.play(); }
+      else if (tab === "yt") ytWantPlay = true;
+    },
+    pause() {
+      ytWantPlay = false;
+      const a = this.active();
+      if (a === "yt") yt.pauseVideo();
+      else if (a === "sp" && !spPaused) sp.pause();
+    },
+    toggle() { this.isPlaying() ? this.pause() : this.play(); },
+    isPlaying() { const a = this.active(); return a === "yt" ? ytPlaying : a === "sp" ? !spPaused : false; },
+    duck(secs) {
+      if (this.active() !== "yt" || !ytPlaying || !secs) return;
+      yt.setVolume(Math.round(MS.vol * 0.25));
+      clearTimeout(this._duck);
+      this._duck = setTimeout(() => yt && yt.setVolume && yt.setVolume(MS.vol), secs * 1000 + 300);
+    },
+  };
+
+  function updateNow() {
+    const playing = music.isPlaying();
+    $("mPlayIcon").innerHTML = playing ? '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+    let title = "Sin reproducción";
+    if (tab === "yt" && yt && yt.getVideoData) {
+      const d = yt.getVideoData();
+      if (d && d.title) {
+        const pl = yt.getPlaylist && yt.getPlaylist();
+        const idx = yt.getPlaylistIndex ? yt.getPlaylistIndex() : -1;
+        title = (pl && pl.length && idx >= 0 ? `${idx + 1}/${pl.length} · ` : "") + d.title;
+      } else title = "Cargando…";
+    } else if (tab === "sp" && sp) {
+      title = playing ? "Reproduciendo en Spotify" : spHasPlayed ? "Spotify en pausa" : "Spotify listo";
+    }
+    $("nowTitle").textContent = title;
+    $("nowTitle").title = title;
+  }
+  setInterval(() => { if (tab === "yt" && yt) updateNow(); }, 2000);
+
+  function showErr(msg) { const e = $("musicErr"); e.textContent = msg || ""; e.hidden = !msg; }
+
+  function setTab(t) {
+    if (t !== tab) music.pause();
+    tab = t; MS.tab = t; saveMusic();
+    $("tabYT").setAttribute("aria-selected", t === "yt");
+    $("tabSP").setAttribute("aria-selected", t === "sp");
+    $("ytBox").hidden = t !== "yt";
+    $("spBox").hidden = t !== "sp";
+    $("musicUrl").value = MS[t] || "";
+    $("musicUrl").placeholder = t === "yt" ? "Pegá el link de una playlist o video de YouTube" : "Pegá el link de una playlist, álbum o tema de Spotify";
+    ["mPrev", "mNext", "mShuffle", "mVol"].forEach((id) => ($(id).disabled = t === "sp"));
+    $("musicNote").textContent = t === "yt"
+      ? "Si un video no permite reproducirse fuera de YouTube, la playlist salta al siguiente."
+      : "Con Spotify, cambiar de tema y el volumen se hacen desde el reproductor. Para escuchar temas completos (y no 30 s) iniciá sesión en open.spotify.com en este mismo navegador.";
+    showErr("");
+    updateNow();
+  }
+  $("tabYT").addEventListener("click", () => setTab("yt"));
+  $("tabSP").addEventListener("click", () => setTab("sp"));
+
+  function loadUrl(raw, fromSaved) {
+    showErr("");
+    if (!raw.trim()) return;
+    if (tab === "yt") {
+      const ref = parseYouTube(raw);
+      if (!ref) { showErr("No reconozco ese link de YouTube. Pegá la URL de una playlist (con list=) o de un video."); return; }
+      MS.yt = raw.trim(); saveMusic(); ytLoad(ref);
+    } else {
+      const uri = parseSpotify(raw);
+      if (!uri) { showErr("No reconozco ese link de Spotify. Copiá el link desde Compartir → Copiar enlace."); return; }
+      MS.sp = raw.trim(); saveMusic(); spLoad(uri);
+    }
+    if (!fromSaved) $("musicUrl").value = raw.trim();
+  }
+  $("musicForm").addEventListener("submit", (e) => { e.preventDefault(); loadUrl($("musicUrl").value); });
+
+  $("btnSave").addEventListener("click", () => {
+    const url = $("musicUrl").value.trim();
+    if (!url) { showErr("Pegá un link para guardarlo."); return; }
+    const ok = tab === "yt" ? parseYouTube(url) : parseSpotify(url);
+    if (!ok) { showErr("Ese link no es válido para " + (tab === "yt" ? "YouTube." : "Spotify.")); return; }
+    if (MS.saved.some((s) => s.url === url)) return;
+    let name = "";
+    if (tab === "yt" && yt && yt.getVideoData) name = (yt.getVideoData() || {}).title || "";
+    if (!name) name = (tab === "yt" ? "YouTube " : "Spotify ") + (MS.saved.filter((s) => s.src === tab).length + 1);
+    MS.saved.push({ src: tab, url, name: name.slice(0, 40) });
+    saveMusic(); renderSaved();
+  });
+  function renderSaved() {
+    const box = $("saved");
+    box.innerHTML = "";
+    MS.saved.forEach((s, i) => {
+      const p = document.createElement("span");
+      p.className = "pill";
+      const a = document.createElement("button");
+      a.innerHTML = `<span class="src">${s.src === "yt" ? "YT" : "SP"}</span>`;
+      a.append(" " + s.name);
+      a.title = s.url;
+      a.addEventListener("click", () => { setTab(s.src); $("musicUrl").value = s.url; loadUrl(s.url, true); });
+      const x = document.createElement("button");
+      x.textContent = "×"; x.title = "Quitar"; x.setAttribute("aria-label", "Quitar " + s.name);
+      x.addEventListener("click", () => { MS.saved.splice(i, 1); saveMusic(); renderSaved(); });
+      p.append(a, x); box.appendChild(p);
+    });
+  }
+
+  $("mPlay").addEventListener("click", () => { audio(); music.toggle(); });
+  $("mPrev").addEventListener("click", () => yt && yt.previousVideo && yt.previousVideo());
+  $("mNext").addEventListener("click", () => yt && yt.nextVideo && yt.nextVideo());
+  $("mShuffle").addEventListener("click", () => {
+    if (!yt || !yt.setShuffle) return;
+    ytShuffle = !ytShuffle; yt.setShuffle(ytShuffle);
+    if (ytShuffle) yt.playVideoAt(0);
+    $("mShuffle").setAttribute("aria-pressed", ytShuffle);
+    $("mShuffle").style.color = ytShuffle ? "var(--phase)" : "";
+  });
+  const vol = $("mVol");
+  vol.value = MS.vol;
+  vol.addEventListener("input", () => { MS.vol = Number(vol.value); saveMusic(); if (yt && yt.setVolume) yt.setVolume(MS.vol); });
+
+  /* =================== Keyboard =================== */
+  document.addEventListener("keydown", (e) => {
+    if (e.target.closest("input, select, textarea") || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.code === "Space") { e.preventDefault(); T.running ? pause() : start(); }
+    else if (e.key === "s" || e.key === "S") skip();
+    else if (e.key === "m" || e.key === "M") { audio(); music.toggle(); }
+  });
+
+  /* =================== Boot =================== */
+  setTab(tab);
+  renderSaved();
+  resetTimer();
+  renderPlan();
+  // restore last playlist (without autoplay)
+  if (MS[tab]) loadUrl(MS[tab], true);
+  if (location.protocol === "file:") showErr("Abrí la app con iniciar.bat (servidor local). Desde un archivo suelto, YouTube no deja reproducir.");
+})();
+</script>
+</body>
+</html>
