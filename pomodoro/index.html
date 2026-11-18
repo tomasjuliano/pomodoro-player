@@ -6,321 +6,415 @@
 <title>Foco y Música</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
 <style>
-/* Layout: two working columns — timer + sequence on the left, music + plan editor on the right; stacks at phone width. */
+/* Layout: the phase colour drenches the page; timer, ruler and music bar own the field, and a sheet below (right column on wide screens) holds player, plan and alarm. */
 :root {
-  --bg: #edf0f4;
-  --surface: #ffffff;
-  --surface-2: #f5f7fa;
-  --line: #d9dfe7;
-  --ink: #17202b;
-  --muted: #5d6978;
-  --focus: #d9482b;
-  --focus-soft: #fbe3dc;
-  --rest: #24805f;
-  --rest-soft: #d8efe5;
-  --track: #dfe4ea;
-  --shadow: 0 1px 2px rgba(23,32,43,.06), 0 8px 24px rgba(23,32,43,.06);
-  --f-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
-  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
-  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  /* fields: running / idle-or-paused, per phase */
+  --focus-field: #d3361f;  --focus-idle: #6b524c;
+  --rest-field:  #1d7356;  --rest-idle:  #4a5f56;
+  --done-field:  #2b2f3a;
+  --field-ink: #ffffff;
+  /* sheet */
+  --sheet: #fbf8f7; --sheet-2: #f2edeb; --sheet-ink: #1e1a19; --sheet-muted: #675e5b; --sheet-line: #e4dbd8;
+  --accent-focus: #c2311b; --accent-rest: #1a6b50;
+  --shadow: 0 2px 6px rgba(40, 14, 8, .10), 0 18px 40px rgba(40, 14, 8, .14);
+  --f: "Archivo", "Segoe UI", system-ui, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e1319; --surface: #161d25; --surface-2: #1c2530; --line: #2a3542;
-    --ink: #e7ecf1; --muted: #93a0ae; --focus: #ff6d4d; --focus-soft: #3a211b;
-    --rest: #4cc699; --rest-soft: #16322a; --track: #26303c;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    --focus-field: #6e1a10; --focus-idle: #2e2321;
+    --rest-field: #0e3a2b;  --rest-idle: #1c2a24;
+    --done-field: #16181f;
+    --field-ink: #ffe9e2;
+    --sheet: #1a1615; --sheet-2: #241e1d; --sheet-ink: #eee7e4; --sheet-muted: #a59a96; --sheet-line: #362e2c;
+    --accent-focus: #ff7a5c; --accent-rest: #4cc79a;
+    --shadow: 0 2px 6px rgba(0,0,0,.3), 0 18px 40px rgba(0,0,0,.35);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0e1319; --surface: #161d25; --surface-2: #1c2530; --line: #2a3542;
-  --ink: #e7ecf1; --muted: #93a0ae; --focus: #ff6d4d; --focus-soft: #3a211b;
-  --rest: #4cc699; --rest-soft: #16322a; --track: #26303c;
-  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  --focus-field: #6e1a10; --focus-idle: #2e2321;
+  --rest-field: #0e3a2b;  --rest-idle: #1c2a24;
+  --done-field: #16181f;
+  --field-ink: #ffe9e2;
+  --sheet: #1a1615; --sheet-2: #241e1d; --sheet-ink: #eee7e4; --sheet-muted: #a59a96; --sheet-line: #362e2c;
+  --accent-focus: #ff7a5c; --accent-rest: #4cc79a;
+  --shadow: 0 2px 6px rgba(0,0,0,.3), 0 18px 40px rgba(0,0,0,.35);
   color-scheme: dark;
 }
 
+body { --field: var(--focus-idle); --accent: var(--accent-focus); }
+body[data-phase="work"][data-state="running"] { --field: var(--focus-field); }
+body[data-phase="rest"][data-state="running"] { --field: var(--rest-field); }
+body[data-phase="rest"]:not([data-state="running"]) { --field: var(--rest-idle); }
+body[data-phase="rest"] { --accent: var(--accent-rest); }
+body[data-state="finished"] { --field: var(--done-field); }
+
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { height: 100%; }
 html, body { margin: 0; }
 body {
-  background: var(--bg); color: var(--ink);
-  font: 14px/1.5 var(--f-body);
-  padding-block: 24px 40px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  min-height: 100%;
+  background: var(--field);
+  color: var(--field-ink);
+  font: 400 15px/1.5 var(--f);
+  font-variation-settings: "wdth" 100;
+  transition: background-color 1.2s cubic-bezier(.16, 1, .3, 1);
+  caret-color: var(--accent);
+  scrollbar-color: color-mix(in srgb, var(--field-ink) 35%, transparent) transparent;
 }
-body[data-phase="work"] { --phase: var(--focus); --phase-soft: var(--focus-soft); }
-body[data-phase="rest"] { --phase: var(--rest); --phase-soft: var(--rest-soft); }
-body { --phase: var(--focus); --phase-soft: var(--focus-soft); }
+::selection { background: var(--field-ink); color: var(--field); }
+.sheet ::selection { background: var(--accent); color: var(--sheet); }
 
-.app { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
-@media (max-width: 900px) { .app { grid-template-columns: minmax(0, 1fr); } }
-
-header.top { max-width: 1180px; margin: 0 auto 18px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-header.top h1 { font: 700 22px/1.1 var(--f-display); margin: 0; letter-spacing: -.01em; }
-header.top .hint { color: var(--muted); font-size: 12.5px; }
-kbd { font: 500 11px var(--f-mono); padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); }
-
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 20px; min-width: 0; }
-.col { display: grid; gap: 20px; min-width: 0; }
-h2 { font: 600 13px/1 var(--f-display); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 14px; }
-
-/* ---------- Timer ---------- */
-.timer { display: grid; justify-items: center; gap: 18px; padding-block: 28px 22px; }
-.phase-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--phase-soft); color: var(--phase); font: 600 13px var(--f-display); letter-spacing: .02em; }
-.phase-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-body[data-state="running"] .phase-chip::before { animation: pulse 1.6s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: .25; } }
-.ring-wrap { position: relative; width: min(330px, 78vw); aspect-ratio: 1; max-width: 100%; }
-.ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.ring-track { fill: none; stroke: var(--track); stroke-width: 10; }
-.ring-bar { fill: none; stroke: var(--phase); stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset .3s linear, stroke .4s; }
-.ring-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 4px; }
-.clock { font: 700 clamp(52px, 13vw, 76px)/1 var(--f-mono); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.sub { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-
-.controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-button { font: 500 14px var(--f-body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
-button:hover { border-color: var(--muted); }
-button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--phase); outline-offset: 2px; }
-button:disabled { opacity: .45; cursor: not-allowed; }
-button.primary { background: var(--phase); border-color: var(--phase); color: #fff; font-weight: 600; padding: 11px 26px; font-size: 15px; min-width: 150px; justify-content: center; }
-button.primary:hover { filter: brightness(1.06); }
-button.icon { padding: 9px 11px; }
-button.ghost { background: transparent; }
-svg.i { width: 16px; height: 16px; fill: currentColor; flex: none; }
-
-/* Sequence strip */
-.seq { width: 100%; display: grid; gap: 8px; }
-.seq-head { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
-.strip { display: flex; gap: 3px; height: 14px; width: 100%; }
-.seg { position: relative; border-radius: 4px; background: var(--track); overflow: hidden; min-width: 4px; }
-.seg > i { position: absolute; inset: 0 auto 0 0; width: 0; }
-.seg.work > i { background: var(--focus); }
-.seg.rest > i { background: var(--rest); }
-.seg.work { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--focus) 35%, transparent); }
-.seg.rest { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rest) 35%, transparent); }
-.seg.current { outline: 2px solid var(--ink); outline-offset: 1px; }
-.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
-.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-.legend .lw::before { background: var(--focus); }
-.legend .lr::before { background: var(--rest); }
-
-/* ---------- Settings rows ---------- */
-.opts { display: grid; gap: 10px; }
-.opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.opt label { display: flex; align-items: center; gap: 9px; cursor: pointer; }
-input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--phase); }
-input[type="range"] { accent-color: var(--phase); width: 130px; }
-select, input[type="text"], input[type="url"], input[type="number"] {
-  font: 400 14px var(--f-body); color: var(--ink); background: var(--surface-2);
-  border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; min-width: 0;
+.layout {
+  max-width: 1320px; margin: 0 auto;
+  padding-block: 20px 28px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px;
+  grid-template-columns: minmax(0, 1fr);
 }
-input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: center; padding: 7px 4px; }
+@media (min-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr); align-items: start; gap: 40px; min-height: 100vh; }
+  .stage { position: sticky; top: 20px; }
+}
+
+/* ---------- Stage (on the field) ---------- */
+.stage { container-type: inline-size; display: grid; gap: 22px; min-width: 0; }
+.topline { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; }
+.phase-word { font-weight: 800; font-size: 26px; line-height: 1; font-variation-settings: "wdth" 88; letter-spacing: -.01em; }
+.block-count { font-size: 15px; font-weight: 500; }
+.state-tag { margin-left: auto; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1.5px solid currentColor; }
+
+.clock {
+  font-weight: 800;
+  font-variation-settings: "wdth" 72;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(84px, 31cqi, 300px);
+  line-height: .82;
+  letter-spacing: -.035em;
+  margin: 6px 0 0 -0.04em;
+}
+.clock.long { font-size: clamp(64px, 22cqi, 220px); }
+.clock-meta { display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 16px; }
+.clock-meta b { font-weight: 700; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button {
+  font: 600 15px/1 var(--f); color: inherit; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 999px; padding: 12px 18px; min-height: 44px;
+  border: 1.5px solid transparent; background: transparent;
+  transition: background-color .15s, color .15s, border-color .15s;
+}
+button:disabled { opacity: .4; cursor: not-allowed; }
+:focus-visible { outline: 2.5px solid currentColor; outline-offset: 3px; }
+.on-field .btn-main { background: var(--field-ink); color: var(--field); min-width: 156px; font-size: 16px; }
+.on-field .btn-main:hover { background: color-mix(in srgb, var(--field-ink) 88%, var(--field)); }
+.on-field .btn-line { border-color: color-mix(in srgb, var(--field-ink) 70%, transparent); }
+.on-field .btn-line:hover:not(:disabled), .on-field .btn-icon:hover:not(:disabled) { background: color-mix(in srgb, var(--field-ink) 14%, transparent); }
+.btn-icon { padding: 10px; min-width: 44px; }
+svg.i { width: 18px; height: 18px; fill: currentColor; flex: none; }
+
+/* Ruler: the session as a measuring tape */
+.ruler-wrap { display: grid; gap: 8px; }
+.ruler { position: relative; height: 58px; }
+.ruler .seg { position: absolute; bottom: 24px; border: 1.5px solid color-mix(in srgb, var(--field-ink) 75%, transparent); border-radius: 3px; overflow: hidden; }
+.ruler .seg.work { height: 34px; }
+.ruler .seg.rest { height: 14px; border-style: dashed; }
+.ruler .seg i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--field-ink); }
+.ruler .seg.rest i { background: color-mix(in srgb, var(--field-ink) 70%, transparent); }
+.ruler svg { position: absolute; left: 0; right: 0; bottom: 8px; width: 100%; height: 14px; overflow: visible; }
+.ruler svg line { stroke: var(--field-ink); vector-effect: non-scaling-stroke; }
+.ruler .lbl { position: absolute; bottom: -10px; font-size: 12px; font-weight: 600; transform: translateX(2px); font-variant-numeric: tabular-nums; }
+.now-mark { position: absolute; top: -4px; bottom: 6px; width: 0; border-left: 2.5px solid var(--field-ink); transition: left .3s linear; }
+.now-mark::before { content: ""; position: absolute; top: -2px; left: -7px; border: 6px solid transparent; border-top: 8px solid var(--field-ink); }
+.ruler-foot { display: flex; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; font-size: 14px; font-variant-numeric: tabular-nums; }
+
+/* Music bar on the field */
+.music-bar {
+  display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap;
+  padding-top: 16px; border-top: 1.5px solid color-mix(in srgb, var(--field-ink) 35%, transparent);
+}
+.music-bar .disc { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; flex: none; background: color-mix(in srgb, var(--field-ink) 16%, transparent); }
+.music-bar .disc svg { width: 18px; height: 18px; fill: var(--field-ink); }
+body[data-music="playing"] .music-bar .disc svg { animation: spin 4s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.now-text { flex: 1 1 180px; min-width: 0; display: grid; }
+.now-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.now-src { font-size: 13px; }
+.music-ctrl { display: flex; align-items: center; gap: 4px; }
+input[type="range"] { accent-color: var(--field-ink); width: 110px; }
+
+/* ---------- Sheet ---------- */
+.sheet {
+  background: var(--sheet); color: var(--sheet-ink);
+  border-radius: 20px; box-shadow: var(--shadow);
+  padding: 22px; display: grid; gap: 6px; min-width: 0;
+  accent-color: var(--accent);
+  scrollbar-color: var(--sheet-line) transparent;
+}
+.sheet :focus-visible { outline-color: var(--accent); }
+.sheet h2 { font-size: 19px; font-weight: 750; font-variation-settings: "wdth" 90; margin: 0; letter-spacing: -.005em; }
+.sheet .sec { display: grid; gap: 12px; padding-block: 6px 18px; }
+.sheet .sec + .sec, .sheet details { border-top: 1px solid var(--sheet-line); }
+.sheet .btn-quiet { background: var(--sheet-2); border-color: var(--sheet-line); font-weight: 550; padding: 9px 14px; min-height: 40px; font-size: 14px; }
+.sheet .btn-quiet:hover:not(:disabled) { border-color: var(--sheet-muted); }
+.sheet .btn-solid { background: var(--accent); color: var(--sheet); padding: 9px 16px; min-height: 40px; font-size: 14px; }
+.sheet .btn-solid:hover:not(:disabled) { filter: brightness(1.08); }
+.sec-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.muted { color: var(--sheet-muted); }
+.small { font-size: 13px; }
+
+input[type="text"], input[type="url"], input[type="number"], select {
+  font: 400 15px var(--f); color: var(--sheet-ink); background: var(--sheet-2);
+  border: 1.5px solid var(--sheet-line); border-radius: 10px; padding: 9px 12px; min-width: 0;
+}
+input:hover, select:hover { border-color: var(--sheet-muted); }
+input[type="number"] { width: 66px; text-align: center; padding: 8px 4px; font-variant-numeric: tabular-nums; font-weight: 600; }
+input:disabled { opacity: .5; }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.grow { flex: 1 1 200px; }
+.grow { flex: 1 1 220px; }
 
-/* ---------- Music ---------- */
-.tabs { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 3px; }
-.tabs button { border: 0; background: transparent; padding: 6px 14px; border-radius: 7px; }
-.tabs button[aria-selected="true"] { background: var(--surface); box-shadow: var(--shadow); font-weight: 600; }
-.music-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.music-head h2 { margin: 0; }
-.player-box { margin-top: 14px; border-radius: 12px; overflow: hidden; background: var(--surface-2); border: 1px dashed var(--line); }
+.seg-switch { display: inline-flex; background: var(--sheet-2); border: 1.5px solid var(--sheet-line); border-radius: 999px; padding: 3px; }
+.seg-switch button { padding: 7px 14px; min-height: 34px; font-size: 14px; font-weight: 550; }
+.seg-switch button[aria-selected="true"] { background: var(--sheet-ink); color: var(--sheet); }
+
+.player-box { border-radius: 14px; overflow: hidden; background: var(--sheet-2); }
 .player-box.yt { aspect-ratio: 16 / 9; max-width: 100%; }
 .player-box iframe { display: block; width: 100%; height: 100%; border: 0; }
-.player-box.sp { min-height: 152px; }
-.player-empty { display: grid; place-content: center; text-align: center; padding: 30px 16px; color: var(--muted); min-height: 150px; gap: 4px; }
-.player-empty strong { color: var(--ink); font-weight: 600; }
-.now { margin-top: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
-.now-title { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 160px; }
-.note { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
-.err { color: var(--focus); font-size: 13px; margin: 8px 0 0; }
-.saved { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-.pill { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 12.5px; overflow: hidden; }
-.pill button { border: 0; border-radius: 0; background: transparent; padding: 5px 10px; font-size: 12.5px; }
-.pill button + button { padding: 5px 8px; color: var(--muted); border-left: 1px solid var(--line); }
-.pill .src { font: 700 10px var(--f-mono); color: var(--muted); margin-right: 2px; }
+.player-empty { display: grid; place-content: center; text-align: center; padding: 28px 16px; min-height: 170px; gap: 2px; height: 100%; }
+.player-empty strong { font-weight: 650; }
+.err { color: var(--accent-focus); font-size: 14px; margin: 0; font-weight: 550; }
 
-/* ---------- Plan editor ---------- */
-.presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.presets button { font-size: 12.5px; padding: 6px 10px; }
-.gen { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 12px; background: var(--surface-2); border-radius: 10px; margin-bottom: 14px; font-size: 13px; }
-.gen label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.saved { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: stretch; border: 1.5px solid var(--sheet-line); border-radius: 999px; background: var(--sheet); overflow: hidden; }
+.chip button { border-radius: 0; padding: 6px 10px; min-height: 32px; font-size: 13px; font-weight: 550; }
+.chip button:hover { background: var(--sheet-2); }
+.chip button + button { border-left: 1.5px solid var(--sheet-line); color: var(--sheet-muted); padding: 6px 9px; }
+.chip svg { width: 13px; height: 13px; fill: currentColor; }
+
+details > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-block: 16px; border-radius: 8px;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary .chev { width: 20px; height: 20px; fill: var(--sheet-muted); transition: transform .2s; flex: none; }
+details[open] > summary .chev { transform: rotate(180deg); }
+details > summary .sum-meta { font-size: 13px; color: var(--sheet-muted); margin-left: auto; text-align: right; }
+details .body { display: grid; gap: 14px; padding-bottom: 18px; }
+
+.presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.gen { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 14px; background: var(--sheet-2); border-radius: 12px; font-size: 14px; }
+.gen label { display: inline-flex; align-items: center; gap: 7px; }
 .blocks { display: grid; gap: 6px; }
-.block { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
-.block .n { font: 700 13px var(--f-mono); color: var(--muted); text-align: center; }
-.block .fields { display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: center; font-size: 13px; color: var(--muted); }
-.block .fields label { display: inline-flex; align-items: center; gap: 6px; }
-.block .fields .w { color: var(--focus); font-weight: 600; }
-.block .fields .r { color: var(--rest); font-weight: 600; }
+.block { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 8px 8px 10px; border: 1.5px solid var(--sheet-line); border-radius: 12px; }
+.block .n { font-weight: 800; font-size: 17px; font-variation-settings: "wdth" 80; text-align: center; color: var(--sheet-muted); }
+.block .fields { display: flex; gap: 8px 18px; flex-wrap: wrap; align-items: center; font-size: 14px; }
+.block .fields label { display: inline-flex; align-items: center; gap: 7px; }
+.block .k-w { font-weight: 650; color: var(--accent-focus); }
+.block .k-r { font-weight: 650; color: var(--accent-rest); }
+.block.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--sheet)); }
+.block.active .n { color: var(--accent); }
 .block.done { opacity: .5; }
-.block.active { border-color: var(--phase); background: var(--phase-soft); }
-.plan-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-.totals { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.lock { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+.plan-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lock { margin: 0; padding: 10px 12px; background: var(--sheet-2); border-radius: 10px; font-size: 14px; }
 
+.opts { display: grid; gap: 4px; }
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; min-height: 44px; }
+.opt label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+input[type="checkbox"] { width: 18px; height: 18px; margin: 0; }
+.sheet input[type="range"] { accent-color: var(--accent); width: 140px; }
+
+.keys { font-size: 13px; color: var(--sheet-muted); padding-top: 14px; border-top: 1px solid var(--sheet-line); display: flex; gap: 6px 16px; flex-wrap: wrap; }
+kbd { font: 600 12px var(--f); padding: 2px 7px; border-radius: 6px; border: 1.5px solid var(--sheet-line); border-bottom-width: 3px; background: var(--sheet); color: var(--sheet-ink); }
+
+@media (max-width: 520px) {
+  .layout { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .sheet { padding: 18px 16px; border-radius: 16px; }
+  .on-field .btn-main { min-width: 0; flex: 1 1 auto; }
+  input[type="range"] { width: 90px; }
+}
 @media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
+  *, *::before { animation: none !important; transition: none !important; }
 }
 </style>
 </head>
 <body data-phase="work" data-state="idle">
+<div class="layout">
 
-<header class="top">
-  <h1>Foco y Música</h1>
-  <span class="hint"><kbd>Espacio</kbd> iniciar / pausar · <kbd>S</kbd> saltar fase · <kbd>M</kbd> música play / pausa</span>
-</header>
+  <!-- ===== Field: what you glance at ===== -->
+  <main class="stage on-field" aria-label="Temporizador">
+    <div class="topline">
+      <span class="phase-word" id="phaseWord">Foco</span>
+      <span class="block-count" id="blockCount">Bloque 1 de 4</span>
+      <span class="state-tag" id="stateTag">Sin empezar</span>
+    </div>
 
-<main class="app">
-  <!-- LEFT: timer -->
-  <div class="col">
-    <section class="panel timer" aria-label="Temporizador">
-      <span class="phase-chip" id="phaseChip">Listo para arrancar</span>
-      <div class="ring-wrap">
-        <svg viewBox="0 0 120 120" aria-hidden="true">
-          <circle class="ring-track" cx="60" cy="60" r="54"></circle>
-          <circle class="ring-bar" id="ringBar" cx="60" cy="60" r="54"></circle>
-        </svg>
-        <div class="ring-center">
-          <div class="clock" id="clock" aria-live="off">25:00</div>
-          <div class="sub" id="clockSub">Bloque 1 de 4</div>
-        </div>
+    <div>
+      <div class="clock" id="clock" role="timer" aria-live="off">25:00</div>
+    </div>
+    <div class="clock-meta">
+      <span id="metaEnd">Termina a las <b>--:--</b></span>
+      <span id="metaNext">Después: descanso de 5 min</span>
+    </div>
+
+    <div class="controls">
+      <button class="btn-main" id="btnStart">
+        <svg class="i" viewBox="0 0 24 24" id="startIcon"><path d="M8 5v14l11-7z"/></svg>
+        <span id="startLabel">Empezar</span>
+      </button>
+      <button class="btn-line" id="btnSkip" title="Pasar a la siguiente fase (S)">
+        <svg class="i" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z"/></svg>
+        Saltar fase
+      </button>
+      <button class="btn-icon" id="btnReset" title="Reiniciar la sesión" aria-label="Reiniciar la sesión">
+        <svg class="i" viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>
+      </button>
+    </div>
+
+    <div class="ruler-wrap" aria-label="Progreso de la sesión">
+      <div class="ruler" id="ruler">
+        <div id="rulerSegs"></div>
+        <svg id="ticks" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div id="rulerLabels"></div>
+        <div class="now-mark" id="nowMark" hidden></div>
       </div>
-      <div class="controls">
-        <button class="icon ghost" id="btnReset" title="Reiniciar sesión" aria-label="Reiniciar sesión">
-          <svg class="i" viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>
-        </button>
-        <button class="primary" id="btnStart">
-          <svg class="i" viewBox="0 0 24 24" id="startIcon"><path d="M8 5v14l11-7z"/></svg>
-          <span id="startLabel">Iniciar</span>
-        </button>
-        <button class="icon ghost" id="btnSkip" title="Saltar a la siguiente fase" aria-label="Saltar fase">
-          <svg class="i" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z"/></svg>
-        </button>
+      <div class="ruler-foot">
+        <span id="seqLeft">Quedan 2 h 10 min</span>
+        <span id="seqEnd">Terminás a las --:--</span>
       </div>
+    </div>
 
-      <div class="seq">
-        <div class="seq-head">
-          <span id="seqLeft">Quedan 1 h 55 min</span>
-          <span id="seqEnd">Terminás ≈ --:--</span>
-        </div>
-        <div class="strip" id="strip"></div>
-        <div class="legend"><span class="lw">Foco</span><span class="lr">Descanso</span></div>
+    <div class="music-bar" aria-label="Música">
+      <span class="disc" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 13.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7zm0-5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg></span>
+      <div class="now-text">
+        <span class="now-title" id="nowTitle">Sin música</span>
+        <span class="now-src" id="nowSrc">Cargá una playlist abajo</span>
       </div>
-    </section>
-
-    <section class="panel" aria-label="Alarma y comportamiento">
-      <h2>Alarma y comportamiento</h2>
-      <div class="opts">
-        <div class="opt">
-          <label for="alarmSound">Sonido al terminar cada fase</label>
-          <div class="row">
-            <select id="alarmSound">
-              <option value="bell">Campana</option>
-              <option value="digital">Digital</option>
-              <option value="chime">Tres notas</option>
-              <option value="gong">Gong grave</option>
-            </select>
-            <button id="btnTestAlarm" class="icon" title="Probar sonido" aria-label="Probar sonido">
-              <svg class="i" viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="opt">
-          <label for="alarmVol">Volumen de la alarma</label>
-          <input type="range" id="alarmVol" min="0" max="100" value="80">
-        </div>
-        <div class="opt">
-          <label for="alarmReps">Repeticiones</label>
-          <input type="number" id="alarmReps" min="1" max="10" value="3">
-        </div>
-        <div class="opt"><label><input type="checkbox" id="optAuto" checked> Pasar sola a la siguiente fase</label></div>
-        <div class="opt"><label><input type="checkbox" id="optFollow" checked> La música arranca con cada bloque de foco</label></div>
-        <div class="opt"><label><input type="checkbox" id="optPauseRest" checked> Pausar la música en los descansos</label></div>
-        <div class="opt">
-          <label><input type="checkbox" id="optNotify"> Notificación del sistema al terminar</label>
-          <span class="note" id="notifyState" style="margin:0"></span>
-        </div>
+      <div class="music-ctrl">
+        <button class="btn-icon" id="mPrev" title="Tema anterior" aria-label="Tema anterior"><svg class="i" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+        <button class="btn-icon" id="mPlay" title="Reproducir o pausar (M)" aria-label="Reproducir o pausar la música"><svg class="i" viewBox="0 0 24 24" id="mPlayIcon"><path d="M8 5v14l11-7z"/></svg></button>
+        <button class="btn-icon" id="mNext" title="Tema siguiente" aria-label="Tema siguiente"><svg class="i" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+        <button class="btn-icon" id="mShuffle" title="Orden aleatorio" aria-label="Orden aleatorio" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M10.6 9.2 5.4 4 4 5.4l5.2 5.2 1.4-1.4zM14.5 4l2 2L4 18.6 5.4 20 18 7.5l2 2V4h-5.5zm.3 9.4-1.4 1.4 3.1 3.1-2 2.1H20v-5.5l-2 2-3.2-3.1z"/></svg></button>
       </div>
-    </section>
-  </div>
+      <input type="range" id="mVol" min="0" max="100" value="60" title="Volumen de la música" aria-label="Volumen de la música">
+    </div>
+  </main>
 
-  <!-- RIGHT: music + plan -->
-  <div class="col">
-    <section class="panel" aria-label="Música">
-      <div class="music-head">
+  <!-- ===== Sheet: setup ===== -->
+  <aside class="sheet" aria-label="Música y configuración">
+    <section class="sec">
+      <div class="sec-head">
         <h2>Música</h2>
-        <div class="tabs" role="tablist">
+        <div class="seg-switch" role="tablist" aria-label="Fuente de música">
           <button role="tab" id="tabYT" aria-selected="true">YouTube</button>
           <button role="tab" id="tabSP" aria-selected="false">Spotify</button>
         </div>
       </div>
       <form class="row" id="musicForm">
-        <input class="grow" type="url" id="musicUrl" placeholder="Pegá el link de una playlist o video de YouTube" autocomplete="off">
-        <button type="submit">Cargar</button>
-        <button type="button" id="btnSave" title="Guardar en favoritos">Guardar</button>
+        <input class="grow" type="url" id="musicUrl" placeholder="Link de una playlist o video de YouTube" autocomplete="off" aria-label="Link de la playlist">
+        <button type="submit" class="btn-solid">Cargar</button>
+        <button type="button" class="btn-quiet" id="btnSave">Guardar</button>
       </form>
       <p class="err" id="musicErr" hidden></p>
       <div class="saved" id="saved"></div>
 
       <div class="player-box yt" id="ytBox">
-        <div class="player-empty" id="ytEmpty">
+        <div class="player-empty muted" id="ytEmpty">
           <strong>Ninguna playlist cargada</strong>
-          <span>Ejemplo: youtube.com/playlist?list=…</span>
+          <span class="small">Pegá un link como youtube.com/playlist?list=…</span>
         </div>
         <div id="ytHolder" hidden></div>
       </div>
       <div class="player-box sp" id="spBox" hidden>
-        <div class="player-empty" id="spEmpty">
+        <div class="player-empty muted" id="spEmpty">
           <strong>Ninguna playlist cargada</strong>
-          <span>Ejemplo: open.spotify.com/playlist/…</span>
+          <span class="small">Pegá un link como open.spotify.com/playlist/…</span>
         </div>
         <div id="spHolder"></div>
       </div>
+      <p class="muted small" id="musicNote" style="margin:0"></p>
+    </section>
 
-      <div class="now">
-        <span class="now-title" id="nowTitle">Sin reproducción</span>
-        <div class="row">
-          <button class="icon" id="mPrev" title="Anterior" aria-label="Anterior"><svg class="i" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-          <button class="icon" id="mPlay" title="Play / pausa" aria-label="Play o pausa"><svg class="i" viewBox="0 0 24 24" id="mPlayIcon"><path d="M8 5v14l11-7z"/></svg></button>
-          <button class="icon" id="mNext" title="Siguiente" aria-label="Siguiente"><svg class="i" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
-          <button class="icon" id="mShuffle" title="Aleatorio" aria-label="Aleatorio" aria-pressed="false"><svg class="i" viewBox="0 0 24 24"><path d="M10.6 9.2 5.4 4 4 5.4l5.2 5.2 1.4-1.4zM14.5 4l2 2L4 18.6 5.4 20 18 7.5l2 2V4h-5.5zm.3 9.4-1.4 1.4 3.1 3.1-2 2.1H20v-5.5l-2 2-3.2-3.1z"/></svg></button>
-          <input type="range" id="mVol" min="0" max="100" value="60" title="Volumen" aria-label="Volumen de la música">
+    <details id="planDetails">
+      <summary>
+        <h2>Plan de bloques</h2>
+        <span class="sum-meta" id="totals"></span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg>
+      </summary>
+      <div class="body">
+        <p class="lock" id="lockMsg" hidden>La sesión está en curso. Reiniciala para cambiar el plan.</p>
+        <div class="presets" id="presets">
+          <button class="btn-quiet" data-p="4,25,5,15">4 de 25 min</button>
+          <button class="btn-quiet" data-p="3,50,10,20">3 de 50 min</button>
+          <button class="btn-quiet" data-p="2,90,20,0">2 de 90 min</button>
+          <button class="btn-quiet" data-p="6,30,5,15">6 de 30 min</button>
+        </div>
+        <div class="gen">
+          <label><input type="number" id="gCount" min="1" max="20" value="4"> bloques de</label>
+          <label><input type="number" id="gWork" min="1" max="240" value="25"> min</label>
+          <label>descanso <input type="number" id="gRest" min="0" max="120" value="5"> min</label>
+          <label>el último <input type="number" id="gLast" min="0" max="120" value="15"> min</label>
+          <button class="btn-solid" id="btnGen">Armar plan</button>
+        </div>
+        <div class="blocks" id="blocks"></div>
+        <div class="plan-foot">
+          <button class="btn-quiet" id="btnAdd">
+            <svg class="i" viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+            Agregar bloque
+          </button>
+          <span class="muted small">Un descanso de 0 min se saltea.</span>
         </div>
       </div>
-      <p class="note" id="musicNote">Los controles de anterior, siguiente, aleatorio y volumen funcionan con YouTube.</p>
-    </section>
+    </details>
 
-    <section class="panel" aria-label="Plan de bloques">
-      <h2>Plan de bloques</h2>
-      <p class="lock" id="lockMsg" hidden>La sesión está en curso. Reiniciala para editar el plan.</p>
-      <div class="presets" id="presets">
-        <button data-p="4,25,5,15">Clásico 4 × 25</button>
-        <button data-p="3,50,10,20">3 × 50</button>
-        <button data-p="2,90,20,0">2 × 90</button>
-        <button data-p="6,30,5,15">6 × 30</button>
+    <details id="alarmDetails">
+      <summary>
+        <h2>Alarma y comportamiento</h2>
+        <span class="sum-meta" id="alarmSum"></span>
+        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg>
+      </summary>
+      <div class="body">
+        <div class="opts">
+          <div class="opt">
+            <label for="alarmSound">Sonido al terminar cada fase</label>
+            <div class="row">
+              <select id="alarmSound">
+                <option value="bell">Campana</option>
+                <option value="digital">Digital</option>
+                <option value="chime">Tres notas</option>
+                <option value="gong">Gong grave</option>
+              </select>
+              <button class="btn-quiet" id="btnTestAlarm">
+                <svg class="i" viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+                Probar
+              </button>
+            </div>
+          </div>
+          <div class="opt"><label for="alarmVol">Volumen de la alarma</label><input type="range" id="alarmVol" min="0" max="100" value="80"></div>
+          <div class="opt"><label for="alarmReps">Repeticiones</label><input type="number" id="alarmReps" min="1" max="10" value="3"></div>
+          <div class="opt"><label><input type="checkbox" id="optAuto" checked> Pasar sola a la siguiente fase</label></div>
+          <div class="opt"><label><input type="checkbox" id="optFollow" checked> La música arranca con cada bloque de foco</label></div>
+          <div class="opt"><label><input type="checkbox" id="optPauseRest" checked> Pausar la música en los descansos</label></div>
+          <div class="opt">
+            <label><input type="checkbox" id="optNotify"> Notificación del sistema al terminar</label>
+            <span class="muted small" id="notifyState"></span>
+          </div>
+        </div>
       </div>
-      <div class="gen">
-        <label><input type="number" id="gCount" min="1" max="20" value="4"> bloques de</label>
-        <label><input type="number" id="gWork" min="1" max="240" value="25"> min</label>
-        <label>descanso <input type="number" id="gRest" min="0" max="120" value="5"> min</label>
-        <label>último <input type="number" id="gLast" min="0" max="120" value="15"> min</label>
-        <button id="btnGen">Aplicar</button>
-      </div>
-      <div class="blocks" id="blocks"></div>
-      <div class="plan-foot">
-        <button id="btnAdd">+ Agregar bloque</button>
-        <span class="totals" id="totals"></span>
-      </div>
-      <p class="note">Un descanso de 0 min se saltea.</p>
-    </section>
-  </div>
-</main>
+    </details>
+
+    <div class="keys">
+      <span><kbd>Espacio</kbd> empezar o pausar</span>
+      <span><kbd>S</kbd> saltar fase</span>
+      <span><kbd>M</kbd> música</span>
+    </div>
+  </aside>
+</div>
 
 <script>
 (() => {
@@ -331,6 +425,9 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
     set(k, v) { try { localStorage.setItem("fym:" + k, JSON.stringify(v)); } catch {} },
   };
   const clampInt = (v, lo, hi, d) => { v = parseInt(v, 10); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+  const ICON_PLAY = '<path d="M8 5v14l11-7z"/>';
+  const ICON_PAUSE = '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
+  const SOUND_NAMES = { bell: "Campana", digital: "Digital", chime: "Tres notas", gong: "Gong grave" };
 
   /* =================== Settings =================== */
   const settings = Object.assign({
@@ -339,7 +436,7 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
   const bindSetting = (id, key, prop = "checked", parse = (x) => x) => {
     const el = $(id);
     el[prop] = settings[key];
-    el.addEventListener("input", () => { settings[key] = parse(el[prop]); store.set("settings", settings); });
+    el.addEventListener("input", () => { settings[key] = parse(el[prop]); store.set("settings", settings); renderAlarmSum(); });
   };
   bindSetting("alarmSound", "sound", "value");
   bindSetting("alarmVol", "vol", "value", Number);
@@ -347,6 +444,9 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
   bindSetting("optAuto", "auto");
   bindSetting("optFollow", "follow");
   bindSetting("optPauseRest", "pauseRest");
+  function renderAlarmSum() {
+    $("alarmSum").textContent = `${SOUND_NAMES[settings.sound] || "Campana"}, ${settings.reps} ${settings.reps === 1 ? "vez" : "veces"}`;
+  }
 
   const notifyBox = $("optNotify");
   const notifyState = $("notifyState");
@@ -421,13 +521,13 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
   }
   const fmtDur = (ms) => {
     const m = Math.round(ms / 60000), h = Math.floor(m / 60), mm = m % 60;
-    return h ? `${h} h ${String(mm).padStart(2, "0")} min` : `${mm} min`;
+    return h ? (mm ? `${h} h ${mm} min` : `${h} h`) : `${mm} min`;
   };
   const fmtClock = (ms) => {
     const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
     return (h ? h + ":" + String(m).padStart(2, "0") : String(m).padStart(2, "0")) + ":" + String(sec).padStart(2, "0");
   };
-  const fmtTime = (d) => d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  const fmtTime = (d) => d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
   function renderPlan() {
     const box = $("blocks");
@@ -444,15 +544,15 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
       row.innerHTML = `
         <span class="n">${i + 1}</span>
         <div class="fields">
-          <label><span class="w">Foco</span><input type="number" min="1" max="240" value="${b.work}" id="bw${i}" aria-label="Minutos de foco del bloque ${i + 1}"> min</label>
-          <label><span class="r">Descanso</span><input type="number" min="0" max="120" value="${b.rest}" id="br${i}" aria-label="Minutos de descanso del bloque ${i + 1}"> min</label>
+          <label><span class="k-w">Foco</span><input type="number" min="1" max="240" value="${b.work}" id="bw${i}" aria-label="Minutos de foco del bloque ${i + 1}"> min</label>
+          <label><span class="k-r">Descanso</span><input type="number" min="0" max="120" value="${b.rest}" id="br${i}" aria-label="Minutos de descanso del bloque ${i + 1}"> min</label>
         </div>
-        <button class="icon ghost" title="Quitar bloque" aria-label="Quitar bloque ${i + 1}" ${plan.length < 2 ? "disabled" : ""}>
+        <button class="btn-icon" title="Quitar el bloque ${i + 1}" aria-label="Quitar el bloque ${i + 1}" ${plan.length < 2 ? "disabled" : ""}>
           <svg class="i" viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7L6 7zm3-3h6l1 2h4v2H4V6h4l1-2z"/></svg>
         </button>`;
       const [w, r] = row.querySelectorAll("input");
-      w.addEventListener("change", () => { b.work = clampInt(w.value, 1, 240, 25); w.value = b.work; planChanged(); });
-      r.addEventListener("change", () => { b.rest = clampInt(r.value, 0, 120, 5); r.value = b.rest; planChanged(); });
+      w.addEventListener("change", () => { b.work = clampInt(w.value, 1, 240, 25); w.value = b.work; planChanged(false); });
+      r.addEventListener("change", () => { b.rest = clampInt(r.value, 0, 120, 5); r.value = b.rest; planChanged(false); });
       row.querySelector("button").addEventListener("click", () => { plan.splice(i, 1); planChanged(true); });
       row.querySelectorAll("input,button").forEach((el) => { if (locked) el.disabled = true; });
       box.appendChild(row);
@@ -461,17 +561,16 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
     $("btnGen").disabled = locked;
     document.querySelectorAll("#presets button, .gen input").forEach((b) => (b.disabled = locked));
     $("lockMsg").hidden = !locked;
-    const focus = plan.reduce((a, b) => a + b.work, 0) * 60000;
     const total = plan.reduce((a, b) => a + b.work + b.rest, 0) * 60000;
-    $("totals").textContent = `${plan.length} ${plan.length === 1 ? "bloque" : "bloques"} · ${fmtDur(focus)} de foco · ${fmtDur(total)} en total`;
+    $("totals").textContent = `${plan.length} ${plan.length === 1 ? "bloque" : "bloques"}, ${fmtDur(total)}`;
   }
   function planChanged(rerender) {
     store.set("plan", plan);
     T.segs = segmentsOf(plan);
+    buildRuler();
     resetTimer();
-    if (rerender) renderPlan(); else renderPlanTotalsOnly();
+    if (rerender) renderPlan(); else { const t = plan.reduce((a, b) => a + b.work + b.rest, 0) * 60000; $("totals").textContent = `${plan.length} ${plan.length === 1 ? "bloque" : "bloques"}, ${fmtDur(t)}`; }
   }
-  function renderPlanTotalsOnly() { renderPlan(); }
 
   $("btnAdd").addEventListener("click", () => {
     const last = plan[plan.length - 1] || { work: 25, rest: 5 };
@@ -492,8 +591,6 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
 
   /* =================== Timer =================== */
   const T = { segs: segmentsOf(plan), i: 0, remaining: 0, endAt: 0, running: false, started: false, finished: false };
-  const CIRC = 2 * Math.PI * 54;
-  $("ringBar").style.strokeDasharray = CIRC;
 
   function resetTimer() {
     T.i = 0; T.running = false; T.started = false; T.finished = false;
@@ -504,7 +601,7 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
 
   function start() {
     audio(); // unlock audio on a user gesture
-    if (T.finished) { resetTimer(); }
+    if (T.finished) resetTimer();
     T.started = true; T.running = true;
     T.endAt = Date.now() + T.remaining;
     onPhaseRun();
@@ -524,15 +621,14 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
   function complete(withAlarm) {
     const seg = T.segs[T.i];
     const isLast = T.i >= T.segs.length - 1;
-    // Silence music before the alarm when the next phase is a break (or the end)
     const next = T.segs[T.i + 1];
     if (settings.follow && (isLast || (next && next.kind === "rest" && settings.pauseRest))) music.pause();
     if (withAlarm) {
       const secs = playAlarm(isLast);
       music.duck(secs);
-      if (isLast) notify("¡Sesión terminada!", `Completaste ${plan.length} bloques de foco.`);
-      else if (seg.kind === "work") notify(`Fin del bloque ${seg.block + 1}`, `Descanso de ${Math.round(next.ms / 60000)} min.`);
-      else notify("Fin del descanso", `Arranca el bloque ${next.block + 1}.`);
+      if (isLast) notify("Sesión terminada", `Completaste ${plan.length} bloques de foco.`);
+      else if (seg.kind === "work") notify(`Terminó el bloque ${seg.block + 1}`, `Descanso de ${Math.round(next.ms / 60000)} min.`);
+      else notify("Terminó el descanso", `Empieza el bloque ${next.block + 1}.`);
     }
     if (isLast) {
       T.finished = true; T.running = false; T.remaining = 0;
@@ -542,8 +638,7 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
     T.remaining = T.segs[T.i].ms;
     if (settings.auto && (T.running || !withAlarm)) {
       T.running = true; T.endAt = Date.now() + T.remaining;
-      // when the alarm rings, wait for it before resuming music
-      const delay = withAlarm ? 1200 : 0;
+      const delay = withAlarm ? 1200 : 0; // let the alarm ring before music resumes
       setTimeout(() => { if (T.running) onPhaseRun(); }, delay);
     } else {
       T.running = false;
@@ -562,55 +657,98 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
   $("btnSkip").addEventListener("click", skip);
   $("btnReset").addEventListener("click", () => { if (settings.follow) music.pause(); resetTimer(); renderPlan(); });
 
+  /* ---- Ruler ---- */
+  let rulerTotal = 1;
+  function buildRuler() {
+    const segBox = $("rulerSegs"), lblBox = $("rulerLabels"), svg = $("ticks");
+    segBox.innerHTML = ""; lblBox.innerHTML = "";
+    const totalMin = T.segs.reduce((a, s) => a + s.ms, 0) / 60000;
+    rulerTotal = totalMin;
+    let at = 0;
+    T.segs.forEach((s) => {
+      const min = s.ms / 60000;
+      const d = document.createElement("div");
+      d.className = "seg " + s.kind;
+      d.style.left = `calc(${(at / totalMin) * 100}% + 1px)`;
+      d.style.width = `calc(${(min / totalMin) * 100}% - 3px)`;
+      d.title = (s.kind === "work" ? `Bloque ${s.block + 1}` : "Descanso") + `, ${min} min`;
+      d.appendChild(document.createElement("i"));
+      segBox.appendChild(d);
+      if (s.kind === "work") {
+        const l = document.createElement("span");
+        l.className = "lbl"; l.textContent = s.block + 1;
+        l.style.left = (at / totalMin) * 100 + "%";
+        lblBox.appendChild(l);
+      }
+      at += min;
+    });
+    // ticks: 1 min (or 5 when long), taller every 5 (or 30)
+    const step = totalMin > 240 ? 5 : 1, major = totalMin > 240 ? 30 : 5;
+    svg.setAttribute("viewBox", `0 0 ${totalMin} 14`);
+    let lines = "";
+    for (let m = 0; m <= totalMin + 0.001; m += step) {
+      const big = m % major === 0;
+      lines += `<line x1="${m}" x2="${m}" y1="0" y2="${big ? 10 : 5}" stroke-width="${big ? 1.5 : 1}" stroke-opacity="${big ? 0.9 : 0.5}"/>`;
+    }
+    svg.innerHTML = lines;
+  }
+
   function render() {
     const seg = T.segs[T.i] || T.segs[T.segs.length - 1];
     const left = T.finished ? 0 : currentLeft();
-    const phase = T.finished ? "work" : seg.kind;
-    document.body.dataset.phase = phase;
-    document.body.dataset.state = T.running ? "running" : T.finished ? "finished" : T.started ? "paused" : "idle";
-
-    $("clock").textContent = fmtClock(left);
-    const frac = seg.ms ? 1 - left / seg.ms : 1;
-    $("ringBar").style.strokeDashoffset = CIRC * (1 - (T.finished ? 1 : frac));
-
+    const state = T.running ? "running" : T.finished ? "finished" : T.started ? "paused" : "idle";
+    document.body.dataset.phase = T.finished ? "work" : seg.kind;
+    document.body.dataset.state = state;
     const blocks = plan.length;
-    let chip;
-    if (T.finished) chip = "Sesión completa";
-    else if (!T.started) chip = "Listo para arrancar";
-    else if (!T.running) chip = (T.remaining === seg.ms ? "Esperando · " : "En pausa · ") + (seg.kind === "work" ? "Foco" : "Descanso");
-    else chip = seg.kind === "work" ? "Foco" : "Descanso";
-    $("phaseChip").textContent = chip;
-    $("clockSub").textContent = T.finished ? `${blocks} de ${blocks} bloques`
-      : seg.kind === "work" ? `Bloque ${seg.block + 1} de ${blocks}` : `Descanso después del bloque ${seg.block + 1}`;
 
-    $("startLabel").textContent = T.running ? "Pausar" : T.finished ? "Otra vez" : T.started ? "Seguir" : "Iniciar";
-    $("startIcon").innerHTML = T.running ? '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+    const clock = $("clock");
+    clock.textContent = fmtClock(left);
+    clock.classList.toggle("long", left >= 3600000);
+
+    $("phaseWord").textContent = T.finished ? "Listo" : seg.kind === "work" ? "Foco" : "Descanso";
+    $("blockCount").textContent = T.finished ? `${blocks} de ${blocks} bloques`
+      : seg.kind === "work" ? `Bloque ${seg.block + 1} de ${blocks}` : `después del bloque ${seg.block + 1}`;
+    const tag = $("stateTag");
+    const waiting = !T.running && T.started && !T.finished && T.remaining === seg.ms;
+    tag.textContent = state === "idle" ? "Sin empezar" : state === "finished" ? "Sesión completa" : state === "paused" ? (waiting ? "Esperando" : "En pausa") : "";
+    tag.hidden = state === "running";
+
+    // what's next
+    const next = T.segs[T.i + 1];
+    if (T.finished) {
+      $("metaEnd").textContent = "Completaste toda la sesión.";
+      $("metaNext").textContent = "";
+    } else {
+      $("metaEnd").innerHTML = T.running ? `Termina a las <b>${fmtTime(new Date(Date.now() + left))}</b>` : `Dura <b>${fmtDur(seg.ms)}</b>`;
+      $("metaNext").textContent = !next ? "Es el último bloque." : next.kind === "rest" ? `Después: descanso de ${fmtDur(next.ms)}` : `Después: bloque ${next.block + 1} de ${fmtDur(next.ms)}`;
+    }
+
+    $("startLabel").textContent = T.running ? "Pausar" : T.finished ? "Repetir sesión" : T.started ? "Seguir" : "Empezar";
+    $("startIcon").innerHTML = T.running ? ICON_PAUSE : ICON_PLAY;
     $("btnSkip").disabled = T.finished;
 
-    // sequence strip
-    const strip = $("strip");
-    if (strip.childElementCount !== T.segs.length) {
-      strip.innerHTML = "";
-      T.segs.forEach((s) => {
-        const d = document.createElement("div");
-        d.className = "seg " + s.kind; d.style.flex = String(s.ms);
-        d.title = (s.kind === "work" ? `Foco · bloque ${s.block + 1}` : "Descanso") + ` · ${Math.round(s.ms / 60000)} min`;
-        d.appendChild(document.createElement("i"));
-        strip.appendChild(d);
-      });
-    }
-    [...strip.children].forEach((d, k) => {
+    // ruler
+    const segEls = $("rulerSegs").children;
+    if (segEls.length !== T.segs.length) buildRuler();
+    const frac = seg.ms ? 1 - left / seg.ms : 1;
+    let elapsedMin = 0;
+    [...$("rulerSegs").children].forEach((d, k) => {
       let p = k < T.i ? 1 : k > T.i ? 0 : frac;
       if (T.finished) p = 1;
       d.firstChild.style.width = (p * 100).toFixed(2) + "%";
-      d.classList.toggle("current", T.started && !T.finished && k === T.i);
+      if (k < T.i) elapsedMin += T.segs[k].ms / 60000;
     });
+    elapsedMin += (T.finished ? 0 : frac * seg.ms / 60000);
+    const mark = $("nowMark");
+    mark.hidden = !T.started || T.finished;
+    mark.style.left = (T.finished ? 100 : (elapsedMin / rulerTotal) * 100) + "%";
+
     const restMs = T.finished ? 0 : left + T.segs.slice(T.i + 1).reduce((a, s) => a + s.ms, 0);
-    $("seqLeft").textContent = T.finished ? "Sesión terminada" : `Quedan ${fmtDur(restMs)}`;
-    $("seqEnd").textContent = T.finished ? "" : `Terminás ≈ ${fmtTime(new Date(Date.now() + restMs))}`;
+    $("seqLeft").textContent = T.finished ? "Sesión terminada" : `Quedan ${fmtDur(restMs)} de sesión`;
+    $("seqEnd").textContent = T.finished ? "" : `Terminás a las ${fmtTime(new Date(Date.now() + restMs))}`;
 
     document.title = T.started && !T.finished
-      ? `${fmtClock(left)} · ${seg.kind === "work" ? "Foco " + (seg.block + 1) + "/" + blocks : "Descanso"}`
+      ? `${fmtClock(left)} ${seg.kind === "work" ? "Foco " + (seg.block + 1) + "/" + blocks : "Descanso"}${T.running ? "" : " (pausa)"}`
       : "Foco y Música";
   }
 
@@ -655,7 +793,7 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
       window.onYouTubeIframeAPIReady = () => resolve(window.YT);
       const s = document.createElement("script");
       s.src = "https://www.youtube.com/iframe_api";
-      s.onerror = () => showErr("No se pudo cargar YouTube. Revisá la conexión.");
+      s.onerror = () => showErr("No se pudo cargar YouTube. Revisá la conexión y volvé a cargar el link.");
       document.head.appendChild(s);
     });
     return ytApi;
@@ -684,8 +822,8 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
         },
         onStateChange: (e) => { ytPlaying = e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING; updateNow(); },
         onError: (e) => {
-          const msg = { 2: "El link no es válido.", 5: "Ese video no se puede reproducir acá.", 100: "El video no existe o es privado.", 101: "El dueño no permite reproducirlo fuera de YouTube.", 150: "El dueño no permite reproducirlo fuera de YouTube.", 153: "YouTube necesita que la página se abra desde un servidor local (no como archivo)." }[e.data];
-          showErr((msg || "Error de YouTube " + e.data) + (ref.list ? " Saltando al siguiente…" : ""));
+          const msg = { 2: "El link no es válido.", 5: "Ese video no se puede reproducir acá.", 100: "El video no existe o es privado.", 101: "El dueño no permite reproducirlo fuera de YouTube.", 150: "El dueño no permite reproducirlo fuera de YouTube.", 153: "Abrí la app con iniciar.bat: YouTube no reproduce desde un archivo suelto." }[e.data];
+          showErr((msg || "YouTube devolvió el error " + e.data + ".") + (ref.list && e.data !== 153 ? " Paso al siguiente tema." : ""));
           if (ref.list && e.data !== 153) setTimeout(() => yt && yt.nextVideo(), 800);
         },
       },
@@ -693,7 +831,7 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
   }
 
   /* ---- Spotify ---- */
-  let spApi = null, sp = null, spPaused = true, spHasPlayed = false, spInfo = "";
+  let spApi = null, sp = null, spPaused = true, spHasPlayed = false;
   function loadSPApi() {
     if (spApi) return spApi;
     spApi = new Promise((resolve) => {
@@ -701,7 +839,7 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
       const s = document.createElement("script");
       s.src = "https://open.spotify.com/embed/iframe-api/v1";
       s.async = true;
-      s.onerror = () => showErr("No se pudo cargar Spotify. Revisá la conexión.");
+      s.onerror = () => showErr("No se pudo cargar Spotify. Revisá la conexión y volvé a cargar el link.");
       document.head.appendChild(s);
     });
     return spApi;
@@ -711,12 +849,11 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
     if (!sp) $("spEmpty").innerHTML = "<strong>Cargando Spotify…</strong>";
     spPendingUri = uri;
     const api = await loadSPApi();
-    if (spCreating) return; // the controller being created will pick up spPendingUri
+    if (spCreating) return; // the controller being created picks up spPendingUri
     spHasPlayed = false; spPaused = true;
     if (sp) { sp.loadUri(uri); updateNow(); return; }
     spCreating = true;
-    const holder = $("spHolder");
-    holder.innerHTML = '<div id="spPlayer"></div>';
+    $("spHolder").innerHTML = '<div id="spPlayer"></div>';
     api.createController($("spPlayer"), { uri, width: "100%", height: 352 }, (ctrl) => {
       sp = ctrl; spCreating = false;
       $("spEmpty").hidden = true;
@@ -760,20 +897,24 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
 
   function updateNow() {
     const playing = music.isPlaying();
-    $("mPlayIcon").innerHTML = playing ? '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
-    let title = "Sin reproducción";
+    document.body.dataset.music = playing ? "playing" : "stopped";
+    $("mPlayIcon").innerHTML = playing ? ICON_PAUSE : ICON_PLAY;
+    let title = "Sin música", src = "Cargá una playlist abajo";
     if (tab === "yt" && yt && yt.getVideoData) {
       const d = yt.getVideoData();
       if (d && d.title) {
+        title = d.title;
         const pl = yt.getPlaylist && yt.getPlaylist();
         const idx = yt.getPlaylistIndex ? yt.getPlaylistIndex() : -1;
-        title = (pl && pl.length && idx >= 0 ? `${idx + 1}/${pl.length} · ` : "") + d.title;
-      } else title = "Cargando…";
+        src = "YouTube" + (pl && pl.length && idx >= 0 ? `, tema ${idx + 1} de ${pl.length}` : "") + (playing ? "" : ", en pausa");
+      } else { title = "Cargando…"; src = "YouTube"; }
     } else if (tab === "sp" && sp) {
-      title = playing ? "Reproduciendo en Spotify" : spHasPlayed ? "Spotify en pausa" : "Spotify listo";
+      title = playing ? "Sonando en Spotify" : spHasPlayed ? "Spotify en pausa" : "Playlist de Spotify lista";
+      src = "Spotify";
     }
     $("nowTitle").textContent = title;
     $("nowTitle").title = title;
+    $("nowSrc").textContent = src;
   }
   setInterval(() => { if (tab === "yt" && yt) updateNow(); }, 2000);
 
@@ -787,11 +928,11 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
     $("ytBox").hidden = t !== "yt";
     $("spBox").hidden = t !== "sp";
     $("musicUrl").value = MS[t] || "";
-    $("musicUrl").placeholder = t === "yt" ? "Pegá el link de una playlist o video de YouTube" : "Pegá el link de una playlist, álbum o tema de Spotify";
+    $("musicUrl").placeholder = t === "yt" ? "Link de una playlist o video de YouTube" : "Link de una playlist, álbum o tema de Spotify";
     ["mPrev", "mNext", "mShuffle", "mVol"].forEach((id) => ($(id).disabled = t === "sp"));
     $("musicNote").textContent = t === "yt"
-      ? "Si un video no permite reproducirse fuera de YouTube, la playlist salta al siguiente."
-      : "Con Spotify, cambiar de tema y el volumen se hacen desde el reproductor. Para escuchar temas completos (y no 30 s) iniciá sesión en open.spotify.com en este mismo navegador.";
+      ? "Si un video no se puede reproducir fuera de YouTube, la playlist pasa al siguiente."
+      : "Con Spotify, cambiar de tema y el volumen se hacen desde el reproductor. Para escuchar temas completos y no fragmentos de 30 s, iniciá sesión en open.spotify.com en este navegador.";
     showErr("");
     updateNow();
   }
@@ -800,14 +941,14 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
 
   function loadUrl(raw, fromSaved) {
     showErr("");
-    if (!raw.trim()) return;
+    if (!raw.trim()) { showErr("Pegá un link para cargarlo."); return; }
     if (tab === "yt") {
       const ref = parseYouTube(raw);
-      if (!ref) { showErr("No reconozco ese link de YouTube. Pegá la URL de una playlist (con list=) o de un video."); return; }
+      if (!ref) { showErr("Ese link no es de YouTube. Pegá la URL de una playlist (con list=) o de un video."); return; }
       MS.yt = raw.trim(); saveMusic(); ytLoad(ref);
     } else {
       const uri = parseSpotify(raw);
-      if (!uri) { showErr("No reconozco ese link de Spotify. Copiá el link desde Compartir → Copiar enlace."); return; }
+      if (!uri) { showErr("Ese link no es de Spotify. En Spotify usá Compartir y después Copiar enlace."); return; }
       MS.sp = raw.trim(); saveMusic(); spLoad(uri);
     }
     if (!fromSaved) $("musicUrl").value = raw.trim();
@@ -819,26 +960,29 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
     if (!url) { showErr("Pegá un link para guardarlo."); return; }
     const ok = tab === "yt" ? parseYouTube(url) : parseSpotify(url);
     if (!ok) { showErr("Ese link no es válido para " + (tab === "yt" ? "YouTube." : "Spotify.")); return; }
-    if (MS.saved.some((s) => s.url === url)) return;
+    if (MS.saved.some((s) => s.url === url)) { showErr("Ese link ya está guardado."); return; }
     let name = "";
     if (tab === "yt" && yt && yt.getVideoData) name = (yt.getVideoData() || {}).title || "";
     if (!name) name = (tab === "yt" ? "YouTube " : "Spotify ") + (MS.saved.filter((s) => s.src === tab).length + 1);
     MS.saved.push({ src: tab, url, name: name.slice(0, 40) });
-    saveMusic(); renderSaved();
+    saveMusic(); renderSaved(); showErr("");
   });
   function renderSaved() {
     const box = $("saved");
     box.innerHTML = "";
+    box.hidden = !MS.saved.length;
     MS.saved.forEach((s, i) => {
       const p = document.createElement("span");
-      p.className = "pill";
+      p.className = "chip";
       const a = document.createElement("button");
-      a.innerHTML = `<span class="src">${s.src === "yt" ? "YT" : "SP"}</span>`;
-      a.append(" " + s.name);
+      a.type = "button";
+      a.textContent = (s.src === "yt" ? "YouTube: " : "Spotify: ") + s.name;
       a.title = s.url;
       a.addEventListener("click", () => { setTab(s.src); $("musicUrl").value = s.url; loadUrl(s.url, true); });
       const x = document.createElement("button");
-      x.textContent = "×"; x.title = "Quitar"; x.setAttribute("aria-label", "Quitar " + s.name);
+      x.type = "button";
+      x.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6z"/></svg>';
+      x.title = "Quitar de guardados"; x.setAttribute("aria-label", "Quitar " + s.name + " de guardados");
       x.addEventListener("click", () => { MS.saved.splice(i, 1); saveMusic(); renderSaved(); });
       p.append(a, x); box.appendChild(p);
     });
@@ -852,7 +996,7 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
     ytShuffle = !ytShuffle; yt.setShuffle(ytShuffle);
     if (ytShuffle) yt.playVideoAt(0);
     $("mShuffle").setAttribute("aria-pressed", ytShuffle);
-    $("mShuffle").style.color = ytShuffle ? "var(--phase)" : "";
+    $("mShuffle").style.background = ytShuffle ? "color-mix(in srgb, var(--field-ink) 22%, transparent)" : "";
   });
   const vol = $("mVol");
   vol.value = MS.vol;
@@ -860,8 +1004,8 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
 
   /* =================== Keyboard =================== */
   document.addEventListener("keydown", (e) => {
-    if (e.target.closest("input, select, textarea") || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.code === "Space") { e.preventDefault(); T.running ? pause() : start(); }
+    if (e.target.closest("input, select, textarea, summary") || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.code === "Space") { if (e.target.closest("button")) return; e.preventDefault(); T.running ? pause() : start(); }
     else if (e.key === "s" || e.key === "S") skip();
     else if (e.key === "m" || e.key === "M") { audio(); music.toggle(); }
   });
@@ -869,11 +1013,12 @@ input[type="number"] { width: 64px; font-family: var(--f-mono); text-align: cent
   /* =================== Boot =================== */
   setTab(tab);
   renderSaved();
+  renderAlarmSum();
+  buildRuler();
   resetTimer();
   renderPlan();
-  // restore last playlist (without autoplay)
   if (MS[tab]) loadUrl(MS[tab], true);
-  if (location.protocol === "file:") showErr("Abrí la app con iniciar.bat (servidor local). Desde un archivo suelto, YouTube no deja reproducir.");
+  if (location.protocol === "file:") showErr("Abrí la app con iniciar.bat. Desde un archivo suelto YouTube no reproduce.");
 })();
 </script>
 </body>

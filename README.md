@@ -24,6 +24,12 @@ python -m http.server 5173 --bind 127.0.0.1 --directory pomodoro
 
 La configuración se guarda en el `localStorage` del navegador.
 
+## Diseño
+
+Dirección "Campo de color": toda la pantalla toma el color de la fase (rojo en foco, verde en descanso, apagado en pausa) para leer el estado de reojo. Tokens y reglas en [DESIGN.md](DESIGN.md).
+
+El repo incluye dos skills de Claude Code en `.claude/skills/`: `frontend-design` (de [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)) e `impeccable` (de [pbakaus/impeccable](https://github.com/pbakaus/impeccable), Apache 2.0).
+
 ## Limitaciones
 
 - Spotify: desde la app solo se controla play/pausa; cambiar de tema se hace en el reproductor. Para temas completos (no previews de 30 s) hay que tener sesión iniciada en open.spotify.com en el mismo navegador.
