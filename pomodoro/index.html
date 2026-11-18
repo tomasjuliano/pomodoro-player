@@ -257,7 +257,8 @@ html.desktop .titlebar {
   user-select: none;
 }
 /* only the content under the title bar scrolls, like a native app */
-html.desktop body { position: fixed; inset: 36px 0 0; overflow-y: auto; overflow-x: hidden; min-height: 0; scrollbar-width: thin; }
+html.desktop, html.desktop body { height: 100%; overflow: hidden; }
+html.desktop .scroller { position: fixed; inset: 36px 0 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
 .tb-drag { flex: 1; display: flex; align-items: center; gap: 9px; padding-left: 12px; min-width: 0; cursor: default; }
 .tb-drag img { width: 16px; height: 16px; flex: none; }
 .tb-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -311,6 +312,7 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
 <div class="rz rz-e" data-edge="e"></div><div class="rz rz-w" data-edge="w"></div>
 <div class="rz rz-ne" data-edge="ne"></div><div class="rz rz-nw" data-edge="nw"></div>
 <div class="rz rz-se" data-edge="se"></div><div class="rz rz-sw" data-edge="sw"></div>
+<div class="scroller" id="scroller">
 <div class="layout">
 
   <!-- ===== Field: what you glance at ===== -->
@@ -491,6 +493,7 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
       <span><kbd>M</kbd> música</span>
     </div>
   </aside>
+</div>
 </div>
 
 <script src="vendor/neutralino.js"></script>
