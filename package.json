@@ -1,0 +1,14 @@
+{
+  "name": "foco-y-musica",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pomodoro con bloques configurables y música de YouTube/Spotify, como app de escritorio con Neutralinojs.",
+  "scripts": {
+    "setup": "neu update",
+    "dev": "neu run",
+    "build": "neu build --release --embed-resources"
+  },
+  "devDependencies": {
+    "@neutralinojs/neu": "11.8.0"
+  }
+}

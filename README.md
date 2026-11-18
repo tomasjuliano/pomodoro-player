@@ -2,7 +2,21 @@
 
 Pomodoro timer con bloques configurables (minutos de foco y de descanso por bloque), reproductor de YouTube / Spotify integrado que sigue al timer, y alarma al terminar cada fase.
 
-## Cómo usarla
+## App de escritorio (Windows)
+
+Hecha con [Neutralinojs](https://neutralino.js.org/): un `.exe` de ~2.6 MB que usa WebView2 (el motor de Edge que ya trae Windows), sin empaquetar un Chromium propio como Electron. Sirve la interfaz desde `http://localhost:47615`, que es lo que necesita el reproductor de YouTube, y como el puerto es fijo la configuración y los favoritos se mantienen entre usos.
+
+Requisitos para compilar: Node.js.
+
+```powershell
+npm install
+npm run setup   # baja los binarios de Neutralino (v6.10.0) a bin/
+npm run build   # genera dist/foco-y-musica/foco-y-musica-win_x64.exe
+```
+
+`npm run dev` abre la app sin compilar. El ejecutable queda en `dist/foco-y-musica/` y se puede copiar a cualquier carpeta: es un solo archivo con la app adentro.
+
+## Cómo usarla en el navegador
 
 Doble clic en `pomodoro/iniciar.bat`. Levanta un servidor local en `http://localhost:5173` y abre el navegador.
 

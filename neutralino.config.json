@@ -1,0 +1,42 @@
+{
+  "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs/main/schemas/neutralino.config.schema.json",
+  "applicationId": "ar.tomasjuliano.focoymusica",
+  "version": "1.0.0",
+  "defaultMode": "window",
+  "port": 47615,
+  "documentRoot": "/pomodoro/",
+  "url": "/",
+  "enableServer": true,
+  "enableNativeAPI": false,
+  "tokenSecurity": "one-time",
+  "logging": {
+    "enabled": false,
+    "writeToLogFile": false
+  },
+  "modes": {
+    "window": {
+      "title": "Foco y Música",
+      "width": 1180,
+      "height": 800,
+      "minWidth": 380,
+      "minHeight": 520,
+      "center": true,
+      "fullScreen": false,
+      "alwaysOnTop": false,
+      "icon": "/pomodoro/icon.png",
+      "enableInspector": false,
+      "borderless": false,
+      "maximize": false,
+      "hidden": false,
+      "resizable": true,
+      "exitProcessOnClose": true
+    }
+  },
+  "cli": {
+    "binaryName": "foco-y-musica",
+    "resourcesPath": "/pomodoro/",
+    "extensionsPath": "/extensions/",
+    "binaryVersion": "6.10.0",
+    "clientVersion": "6.10.0"
+  }
+}
