@@ -8,7 +8,7 @@
   "url": "/",
   "enableServer": true,
   "enableNativeAPI": true,
-  "nativeAllowList": ["window.minimize", "window.maximize", "window.unmaximize", "window.isMaximized", "window.beginDrag", "window.move", "window.getPosition", "window.getSize", "window.setSize", "window.setBorderless", "app.exit"],
+  "nativeAllowList": ["window.minimize", "window.maximize", "window.unmaximize", "window.isMaximized", "window.beginDrag", "window.move", "window.getSize", "window.setSize", "window.setBorderless", "app.exit"],
   "tokenSecurity": "none",
   "logging": {
     "enabled": false,
