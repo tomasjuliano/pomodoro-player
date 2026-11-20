@@ -2,6 +2,10 @@
 
 Pomodoro timer con bloques configurables (minutos de foco y de descanso por bloque), reproductor de YouTube / Spotify integrado que sigue al timer, y alarma al terminar cada fase.
 
+## Descargar
+
+**[Bajar Foco-y-Musica.exe](https://github.com/tomasjuliano/pomodoro-player/releases/latest/download/Foco-y-Musica.exe)** (Windows 10/11, ~2.6 MB, no se instala). Como no está firmado, Windows puede mostrar "Windows protegió su PC": **Más información → Ejecutar de todas formas**. Todas las versiones en [Releases](https://github.com/tomasjuliano/pomodoro-player/releases).
+
 ## App de escritorio (Windows)
 
 Hecha con [Neutralinojs](https://neutralino.js.org/): un `.exe` de ~2.6 MB que usa WebView2 (el motor de Edge que ya trae Windows), sin empaquetar un Chromium propio como Electron. Sirve la interfaz desde `http://localhost:47615`, que es lo que necesita el reproductor de YouTube, y como el puerto es fijo la configuración y los favoritos se mantienen entre usos.
