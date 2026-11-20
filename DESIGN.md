@@ -39,6 +39,7 @@ Rule: the sleeve swaps inks between phases (blue/white for focus, mustard/black 
 - **Now playing strip**: mini vinyl (spins with the music), title, source, next track, transport (round play button), volume.
 - **Buttons on the cover**: main = ink fill with cover-coloured uppercase text (hover: label ink); secondary = 2px ink outline; icon buttons 44px. State tag: dashed outline.
 - **Side panel** for plan and alarm: slides in from the right, 6px left edge in the current sleeve colour, Plan de bloques / Alarma switch, closes with X, Esc or a click outside.
+- **Theme button**: square 34px outline button after Plan/Alarma; cycles Sistema → Claro → Oscuro (monitor, sun, moon icons), stored per viewer and applied before first paint via `data-theme` on the root.
 - Icons: inline SVG, filled 24-grid.
 
 ## Desktop window (Neutralino)

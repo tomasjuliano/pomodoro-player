@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Foco y Música</title>
+<script>
+  // Apply the saved theme before first paint (system / light / dark).
+  try { const t = JSON.parse(localStorage.getItem("fym:theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700..900&family=Barlow:wght@400;500;600;700&display=swap">
@@ -135,6 +139,7 @@ body[data-state="running"] .disc { animation-play-state: running; }
 .side-line { display: flex; gap: 10px; align-items: baseline; }
 .state-tag { margin-left: auto; display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border: 1.5px dashed currentColor; border-radius: 3px; font-size: 13.5px; font-weight: 600; }
 .top-actions { display: flex; gap: 8px; }
+.cover .btn-theme { width: 34px; padding: 0; }
 .state-tag[hidden] + .top-actions { margin-left: auto; }
 
 .phase-word {
@@ -414,6 +419,9 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
             <button type="button" class="btn-line btn-small" id="openAlarm" aria-controls="drawer">
               <svg class="i" viewBox="0 0 24 24"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.84V3h-3v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2z"/></svg>
               Alarma
+            </button>
+            <button type="button" class="btn-line btn-small btn-theme" id="themeBtn" title="Tema: el del sistema" aria-label="Tema: el del sistema. Cambiar tema">
+              <svg class="i" viewBox="0 0 24 24" id="themeIcon"></svg>
             </button>
           </div>
         </div>
@@ -1301,6 +1309,25 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
     else if (e.key === "s" || e.key === "S") skip();
     else if (e.key === "m" || e.key === "M") { audio(); music.toggle(); }
   });
+
+  /* =================== Theme: system / light / dark =================== */
+  const THEMES = {
+    system: { next: "light", label: "el del sistema", icon: '<path d="M3 4h18v12H3zm2 2v8h14V6zM8 19h8v2H8z"/>' },
+    light:  { next: "dark",  label: "claro", icon: '<path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3zM4.2 5.6l1.4-1.4 2.1 2.1-1.4 1.4zm12.1 12.1 1.4-1.4 2.1 2.1-1.4 1.4zM4.2 18.4l2.1-2.1 1.4 1.4-2.1 2.1zM16.3 6.3l2.1-2.1 1.4 1.4-2.1 2.1z"/>' },
+    dark:   { next: "system", label: "oscuro", icon: '<path d="M12.3 2a8.5 8.5 0 1 0 9.7 9.7A7 7 0 0 1 12.3 2z"/>' },
+  };
+  let theme = store.get("theme", "system");
+  if (!THEMES[theme]) theme = "system";
+  function applyTheme() {
+    if (theme === "system") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+    const t = THEMES[theme], nextLabel = THEMES[t.next].label;
+    $("themeIcon").innerHTML = t.icon;
+    $("themeBtn").title = `Tema: ${t.label}. Clic para usar ${nextLabel}`;
+    $("themeBtn").setAttribute("aria-label", `Tema: ${t.label}. Usar ${nextLabel}`);
+  }
+  $("themeBtn").addEventListener("click", () => { theme = THEMES[theme].next; store.set("theme", theme); applyTheme(); });
+  applyTheme();
 
   /* =================== Side panel: plan / alarm =================== */
   const drawer = $("drawer"), backdrop = $("drawerBackdrop");
