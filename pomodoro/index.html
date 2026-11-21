@@ -5,6 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Foco y Música</title>
 <script>
+  // YouTube refuses embeds on pages served from 127.0.0.1 (error 150 on every video), and Neutralino opens the app there.
+  // Move to localhost, carrying this origin's saved settings once in the hash (it never leaves the machine).
+  if (location.hostname === "127.0.0.1") {
+    const u = new URL(location.href);
+    u.hostname = "localhost";
+    try {
+      if (!localStorage.getItem("fym-moved")) {
+        const data = {};
+        for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("fym:")) data[k] = localStorage.getItem(k); }
+        if (Object.keys(data).length) u.hash = "fym-import=" + encodeURIComponent(JSON.stringify(data));
+        localStorage.setItem("fym-moved", "1");
+      }
+    } catch {}
+    location.replace(u.href);
+    throw new Error("moving to localhost"); // stop this script; the page is being replaced
+  }
+  if (location.hash.startsWith("#fym-import=")) {
+    try {
+      const data = JSON.parse(decodeURIComponent(location.hash.slice(12)));
+      for (const k in data) if (k.startsWith("fym:") && localStorage.getItem(k) == null) localStorage.setItem(k, data[k]);
+    } catch {}
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+</script>
+<script>
   // Apply the saved theme before first paint (system / light / dark).
   try { const t = JSON.parse(localStorage.getItem("fym:theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
 </script>
