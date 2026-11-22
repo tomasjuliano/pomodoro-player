@@ -31,7 +31,7 @@
 </script>
 <script>
   // Apply the saved theme before first paint (system / light / dark).
-  try { const t = JSON.parse(localStorage.getItem("fym:theme")); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+  try { const t = JSON.parse(localStorage.getItem("fym:theme")); if (/^(light|imprenta|bossa|riso|dark|humo|neon|lima)$/.test(t)) document.documentElement.dataset.theme = t; } catch {}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
 <style>
 /* Layout: an LP sleeve. The cover (phase-coloured, two inks) holds phase word, clock and controls with a vinyl sliding out of its right edge;
    under it the session as a tracklist ("Lado A") and the now-playing strip; liner-notes sheet with player and queue beside it. */
-:root {
+:root, .sw[data-sw="light"] {
   /* sleeves: running / paused-idle per phase, each with ink (type) and label (second ink) */
   --focus-cover: #1d3fd8; --focus-ink: #ffffff; --focus-label: #ffd23f;
   --focus-idle:  #3b4a8c; --focus-idle-ink: #ffffff; --focus-idle-label: #e3cf7a;
@@ -50,7 +50,7 @@
   --page: #ece6d8; --page-ink: #16140f; --page-muted: #5f594d; --page-line: #d3cbb8;
   --sheet: #f8f5ee; --sheet-2: #efeadf; --sheet-ink: #16140f; --sheet-muted: #655f52; --sheet-line: #ddd5c3;
   --accent: #1d3fd8; --accent-ink: #ffffff;
-  --accent-focus: #1d3fd8; --accent-rest: #946f00; --danger: #c2321f;
+  --accent-focus: #1d3fd8; --accent-rest: #866400; --danger: #c2321f;
   --vinyl: #0d0d0f; --groove: #1d1d21;
   --shadow: 0 2px 4px rgba(30, 24, 10, .10), 0 16px 34px rgba(30, 24, 10, .16);
   --f-display: "Big Shoulders Display", "Bahnschrift", "Arial Narrow", sans-serif;
@@ -58,7 +58,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme]) {
     --focus-cover: #1733b8; --focus-label: #ffd23f;
     --focus-idle: #232c5e; --focus-idle-label: #cdb862;
     --rest-cover: #d9a404; --rest-idle: #6f5f2c; --rest-idle-ink: #f3ead2; --rest-idle-label: #b9c6ff;
@@ -71,7 +71,7 @@
     color-scheme: dark;
   }
 }
-:root[data-theme="dark"] {
+:root[data-theme="dark"], .sw[data-sw="dark"] {
   --focus-cover: #1733b8; --focus-label: #ffd23f;
   --focus-idle: #232c5e; --focus-idle-label: #cdb862;
   --rest-cover: #d9a404; --rest-idle: #6f5f2c; --rest-idle-ink: #f3ead2; --rest-idle-label: #b9c6ff;
@@ -79,6 +79,91 @@
   --page: #131210; --page-ink: #efe9dc; --page-muted: #a7a090; --page-line: #2d2a24;
   --sheet: #1c1a17; --sheet-2: #25221e; --sheet-ink: #efe9dc; --sheet-muted: #a39d90; --sheet-line: #332f29;
   --accent: #7d96ff; --accent-ink: #0b1238; --accent-focus: #8ea3ff; --accent-rest: #f2c230; --danger: #ff7a66;
+  --vinyl: #050506; --groove: #18181b;
+  --shadow: 0 2px 4px rgba(0,0,0,.35), 0 16px 34px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+/* More pressings: each theme is its own pair of two-ink sleeves (focus / break) on its own page. */
+/* Imprenta (claro) */
+:root[data-theme="imprenta"], .sw[data-sw="imprenta"] {
+  --focus-cover: #c8321b; --focus-ink: #ffffff; --focus-label: #151515;
+  --focus-idle: #a65a4b; --focus-idle-ink: #ffffff; --focus-idle-label: #151515;
+  --rest-cover: #1c1c1c; --rest-ink: #f3ead8; --rest-label: #ff5a3c;
+  --rest-idle: #3d3935; --rest-idle-ink: #f3ead8; --rest-idle-label: #e08a78;
+  --done-cover: #e2d9c6; --done-ink: #151515; --done-label: #c8321b;
+  --page: #efe8dc; --page-ink: #151515; --page-muted: #5e574c; --page-line: #d6ccba;
+  --sheet: #faf6ef; --sheet-2: #f1ebe0; --sheet-ink: #151515; --sheet-muted: #62594d; --sheet-line: #e0d7c7;
+  --accent: #c8321b; --accent-ink: #ffffff; --accent-focus: #b52c17; --accent-rest: #2b2b2b; --danger: #9c2412;
+  --vinyl: #0d0d0f; --groove: #1d1d21;
+  --shadow: 0 2px 4px rgba(30, 24, 10, .10), 0 16px 34px rgba(30, 24, 10, .16);
+  color-scheme: light;
+}
+/* Bossa (claro) */
+:root[data-theme="bossa"], .sw[data-sw="bossa"] {
+  --focus-cover: #0e6b52; --focus-ink: #fbf4e4; --focus-label: #ffb347;
+  --focus-idle: #39554a; --focus-idle-ink: #fbf4e4; --focus-idle-label: #e3bd8f;
+  --rest-cover: #f4a9a0; --rest-ink: #1d1a17; --rest-label: #0b5a45;
+  --rest-idle: #cfafab; --rest-idle-ink: #1d1a17; --rest-idle-label: #365449;
+  --done-cover: #e3e6d8; --done-ink: #1d1a17; --done-label: #0e6b52;
+  --page: #eef0e6; --page-ink: #171a15; --page-muted: #565c51; --page-line: #d2d7c6;
+  --sheet: #fbfcf7; --sheet-2: #f0f3e8; --sheet-ink: #171a15; --sheet-muted: #585f53; --sheet-line: #dde2d2;
+  --accent: #0e6b52; --accent-ink: #ffffff; --accent-focus: #0e6b52; --accent-rest: #b4483c; --danger: #b3261e;
+  --vinyl: #0d0d0f; --groove: #1d1d21;
+  --shadow: 0 2px 4px rgba(30, 24, 10, .10), 0 16px 34px rgba(30, 24, 10, .16);
+  color-scheme: light;
+}
+/* Risografía (claro) */
+:root[data-theme="riso"], .sw[data-sw="riso"] {
+  --focus-cover: #007a85; --focus-ink: #ffffff; --focus-label: #ffd2e3;
+  --focus-idle: #436367; --focus-idle-ink: #ffffff; --focus-idle-label: #f0d9e2;
+  --rest-cover: #ff8fb8; --rest-ink: #20123a; --rest-label: #005f68;
+  --rest-idle: #d1a1b0; --rest-idle-ink: #20123a; --rest-idle-label: #3a5a5e;
+  --done-cover: #f3e6e3; --done-ink: #20123a; --done-label: #007a85;
+  --page: #f6efe9; --page-ink: #20123a; --page-muted: #615671; --page-line: #e3d6d0;
+  --sheet: #fffaf6; --sheet-2: #f8efea; --sheet-ink: #20123a; --sheet-muted: #625872; --sheet-line: #ebdfd9;
+  --accent: #007a85; --accent-ink: #ffffff; --accent-focus: #007a85; --accent-rest: #c2306f; --danger: #b3261e;
+  --vinyl: #0d0d0f; --groove: #1d1d21;
+  --shadow: 0 2px 4px rgba(30, 24, 10, .10), 0 16px 34px rgba(30, 24, 10, .16);
+  color-scheme: light;
+}
+/* Humo y bronce (oscuro) */
+:root[data-theme="humo"], .sw[data-sw="humo"] {
+  --focus-cover: #7d1d2c; --focus-ink: #f6ead6; --focus-label: #e7b24a;
+  --focus-idle: #472426; --focus-idle-ink: #f6ead6; --focus-idle-label: #d2b88b;
+  --rest-cover: #c99a3f; --rest-ink: #1c1210; --rest-label: #5e1220;
+  --rest-idle: #ac9979; --rest-idle-ink: #1c1210; --rest-idle-label: #4b272a;
+  --done-cover: #2a2224; --done-ink: #f1e6d6; --done-label: #e7b24a;
+  --page: #141011; --page-ink: #f1e6d6; --page-muted: #b1a395; --page-line: #30282a;
+  --sheet: #1d1819; --sheet-2: #272021; --sheet-ink: #f1e6d6; --sheet-muted: #b0a294; --sheet-line: #3a3032;
+  --accent: #e7b24a; --accent-ink: #1c1210; --accent-focus: #ef8f9c; --accent-rest: #e7b24a; --danger: #ff7a66;
+  --vinyl: #050506; --groove: #18181b;
+  --shadow: 0 2px 4px rgba(0,0,0,.35), 0 16px 34px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+/* Neón (oscuro) */
+:root[data-theme="neon"], .sw[data-sw="neon"] {
+  --focus-cover: #5b2bd6; --focus-ink: #ffffff; --focus-label: #4ef2c5;
+  --focus-idle: #3c3571; --focus-idle-ink: #ffffff; --focus-idle-label: #a1e3cc;
+  --rest-cover: #ff6f59; --rest-ink: #1a0f2e; --rest-label: #341a8c;
+  --rest-idle: #c78b80; --rest-idle-ink: #1a0f2e; --rest-idle-label: #333163;
+  --done-cover: #221c31; --done-ink: #eeeaf7; --done-label: #4ef2c5;
+  --page: #0f0c17; --page-ink: #eeeaf7; --page-muted: #a9a1c2; --page-line: #2a2340;
+  --sheet: #181424; --sheet-2: #221c31; --sheet-ink: #eeeaf7; --sheet-muted: #a9a1c2; --sheet-line: #342b49;
+  --accent: #4ef2c5; --accent-ink: #0f0c17; --accent-focus: #b39bff; --accent-rest: #ff8f7d; --danger: #ff7a8a;
+  --vinyl: #050506; --groove: #18181b;
+  --shadow: 0 2px 4px rgba(0,0,0,.35), 0 16px 34px rgba(0,0,0,.45);
+  color-scheme: dark;
+}
+/* Lima (oscuro) */
+:root[data-theme="lima"], .sw[data-sw="lima"] {
+  --focus-cover: #c6ef3a; --focus-ink: #121410; --focus-label: #2d3bd1;
+  --focus-idle: #c9dc9f; --focus-idle-ink: #121410; --focus-idle-label: #3e5195;
+  --rest-cover: #e9e4d6; --rest-ink: #121212; --rest-label: #c23a22;
+  --rest-idle: #b9b4a6; --rest-idle-ink: #121212; --rest-idle-label: #7e2a1b;
+  --done-cover: #212521; --done-ink: #ecefe6; --done-label: #c6ef3a;
+  --page: #101210; --page-ink: #ecefe6; --page-muted: #a3aa9c; --page-line: #272c27;
+  --sheet: #181b18; --sheet-2: #212521; --sheet-ink: #ecefe6; --sheet-muted: #a3aa9c; --sheet-line: #313731;
+  --accent: #c6ef3a; --accent-ink: #121410; --accent-focus: #c6ef3a; --accent-rest: #ff8a73; --danger: #ff7a66;
   --vinyl: #050506; --groove: #18181b;
   --shadow: 0 2px 4px rgba(0,0,0,.35), 0 16px 34px rgba(0,0,0,.45);
   color-scheme: dark;
@@ -346,6 +431,41 @@ html.desktop .drawer, html.desktop .drawer-backdrop { top: 36px; }
 .plan-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .lock { margin: 0; padding: 10px 12px; background: var(--sheet-2); border-radius: 3px; font-size: 14px; }
 
+/* Theme picker: every option is a miniature of its record — the break sleeve behind, the focus sleeve in front, on that theme's own page. */
+.themes { display: grid; gap: 10px; }
+.theme-group { margin: 12px 0 0; font: 900 19px/1 var(--f-display); text-transform: uppercase; }
+.theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.theme-opt {
+  display: grid; gap: 8px; align-content: start; justify-content: stretch; text-align: left;
+  padding: 6px 6px 10px; min-height: 0; border: 2px solid var(--sheet-line); border-radius: 4px;
+  font-size: 14px; font-weight: 600; line-height: 1.25;
+  transition: border-color .15s;
+}
+.theme-opt:hover { border-color: var(--sheet-muted); }
+.theme-opt[aria-checked="true"] { border-color: var(--sheet-ink); box-shadow: inset 0 0 0 1px var(--sheet-ink); }
+.theme-name { display: flex; align-items: center; gap: 6px; padding-inline: 4px; }
+.theme-opt[aria-checked="true"] .theme-name::after {
+  content: ""; width: 16px; height: 16px; margin-left: auto; flex: none;
+  background: currentColor; -webkit-mask: var(--check) center / contain no-repeat; mask: var(--check) center / contain no-repeat;
+}
+.themes { --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/%3E%3C/svg%3E"); }
+.sw { position: relative; display: block; aspect-ratio: 16 / 10; border-radius: 2px; background: var(--page); overflow: hidden; }
+.sw-r, .sw-f { position: absolute; top: 14%; height: 72%; aspect-ratio: 1; border-radius: 2px; }
+.sw-r { left: 42%; background: var(--rest-cover); box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+.sw-r::after { content: ""; position: absolute; right: 12%; bottom: 12%; width: 22%; aspect-ratio: 1; border-radius: 50%; background: var(--rest-label); }
+.sw-f { left: 10%; background: var(--focus-cover); box-shadow: 0 2px 6px rgba(0,0,0,.22); padding: 8% 9%; display: flex; flex-direction: column; justify-content: space-between; }
+.sw-f b { font: 900 clamp(15px, 3.6vw, 22px)/.8 var(--f-display); text-transform: uppercase; color: var(--focus-label); }
+.sw-f::after { content: ""; display: block; height: 14%; width: 70%; background: var(--focus-ink); border-radius: 1px; }
+.theme-auto { grid-template-columns: minmax(0, 1fr); }
+.sw-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.sw-pair .sw { aspect-ratio: 16 / 8; }
+.sw-pair .sw-f b { font-size: 15px; }
+.theme-name small { display: block; font-size: 12.5px; font-weight: 400; color: var(--sheet-muted); }
+.theme-auto .theme-name { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; }
+.theme-auto .theme-name small { grid-row: 2; }
+.theme-auto .theme-name::after { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+.drawer-backdrop.clear { background: transparent; } /* while choosing a theme the cover stays undimmed: it is the preview */
+
 .opts { display: grid; gap: 4px; }
 .opt { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; min-height: 44px; }
 .opt label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
@@ -445,8 +565,8 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
               <svg class="i" viewBox="0 0 24 24"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.84V3h-3v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2z"/></svg>
               Alarma
             </button>
-            <button type="button" class="btn-line btn-small btn-theme" id="themeBtn" title="Tema: el del sistema" aria-label="Tema: el del sistema. Cambiar tema">
-              <svg class="i" viewBox="0 0 24 24" id="themeIcon"></svg>
+            <button type="button" class="btn-line btn-small btn-theme" id="themeBtn" aria-controls="drawer" title="Tema" aria-label="Tema">
+              <svg class="i" viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.4A5.6 5.6 0 0 0 22 9.8C22 5.5 17.5 2 12 2zM6.5 13a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
             </button>
           </div>
         </div>
@@ -555,11 +675,12 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
 </div>
 
 <div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
-<aside class="sheet drawer" id="drawer" role="dialog" aria-label="Plan y alarma" hidden>
+<aside class="sheet drawer" id="drawer" role="dialog" aria-label="Plan, alarma y tema" hidden>
   <header class="drawer-head">
     <div class="seg-switch" role="tablist" aria-label="Configuración">
-      <button type="button" role="tab" id="tabPlan" aria-controls="panelPlan" aria-selected="true">Plan de bloques</button>
+      <button type="button" role="tab" id="tabPlan" aria-controls="panelPlan" aria-selected="true">Plan</button>
       <button type="button" role="tab" id="tabAlarm" aria-controls="panelAlarm" aria-selected="false">Alarma</button>
+      <button type="button" role="tab" id="tabTheme" aria-controls="panelTheme" aria-selected="false">Tema</button>
     </div>
     <button type="button" class="btn-icon drawer-close" id="drawerClose" title="Cerrar (Esc)" aria-label="Cerrar panel">
       <svg class="i" viewBox="0 0 24 24"><path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6z"/></svg>
@@ -619,6 +740,19 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
             <label><input type="checkbox" id="optNotify"> Notificación del sistema al terminar</label>
             <span class="muted small" id="notifyState"></span>
           </div>
+        </div>
+    </section>
+    <section class="panel" id="panelTheme" data-title="Tema" hidden>
+        <p class="panel-meta">Cada tema es un par de tapas: una para el foco y otra para el descanso. Se aplica al tocarlo.</p>
+        <div class="themes" role="radiogroup" aria-label="Tema">
+          <button type="button" class="theme-opt theme-auto" role="radio" data-t="system">
+            <span class="sw-pair"><span class="sw" data-sw="light"><span class="sw-r"></span><span class="sw-f"><b>Foco</b></span></span><span class="sw" data-sw="dark"><span class="sw-r"></span><span class="sw-f"><b>Foco</b></span></span></span>
+            <span class="theme-name">Automático<small>Azul y mostaza, clara u oscura según tu sistema</small></span>
+          </button>
+          <h3 class="theme-group">Claros</h3>
+          <div class="theme-grid" id="themesLight"></div>
+          <h3 class="theme-group">Oscuros</h3>
+          <div class="theme-grid" id="themesDark"></div>
         </div>
     </section>
   </div>
@@ -1335,23 +1469,47 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
     else if (e.key === "m" || e.key === "M") { audio(); music.toggle(); }
   });
 
-  /* =================== Theme: system / light / dark =================== */
-  const THEMES = {
-    system: { next: "light", label: "el del sistema", icon: '<path d="M3 4h18v12H3zm2 2v8h14V6zM8 19h8v2H8z"/>' },
-    light:  { next: "dark",  label: "claro", icon: '<path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3zM4.2 5.6l1.4-1.4 2.1 2.1-1.4 1.4zm12.1 12.1 1.4-1.4 2.1 2.1-1.4 1.4zM4.2 18.4l2.1-2.1 1.4 1.4-2.1 2.1zM16.3 6.3l2.1-2.1 1.4 1.4-2.1 2.1z"/>' },
-    dark:   { next: "system", label: "oscuro", icon: '<path d="M12.3 2a8.5 8.5 0 1 0 9.7 9.7A7 7 0 0 1 12.3 2z"/>' },
-  };
+  /* =================== Themes: automatic + 4 light + 4 dark pressings =================== */
+  // Tokens live in CSS (:root[data-theme="…"]); keep these ids in sync with the early head script.
+  const THEMES = [
+    { id: "light",    name: "Azul y mostaza", dark: false },
+    { id: "imprenta", name: "Imprenta",       dark: false },
+    { id: "bossa",    name: "Bossa",          dark: false },
+    { id: "riso",     name: "Risografía",     dark: false },
+    { id: "dark",     name: "Azul y mostaza", dark: true },
+    { id: "humo",     name: "Humo y bronce",  dark: true },
+    { id: "neon",     name: "Neón",           dark: true },
+    { id: "lima",     name: "Lima",           dark: true },
+  ];
+  const themeName = (id) => (id === "system" ? "Automático" : THEMES.find((t) => t.id === id).name);
   let theme = store.get("theme", "system");
-  if (!THEMES[theme]) theme = "system";
+  if (theme !== "system" && !THEMES.some((t) => t.id === theme)) theme = "system";
+  for (const t of THEMES) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "theme-opt"; b.setAttribute("role", "radio"); b.dataset.t = t.id;
+    b.innerHTML = `<span class="sw" data-sw="${t.id}"><span class="sw-r"></span><span class="sw-f"><b>Foco</b></span></span><span class="theme-name">${t.name}</span>`;
+    $(t.dark ? "themesDark" : "themesLight").appendChild(b);
+  }
+  const themeOpts = [...document.querySelectorAll(".theme-opt")];
   function applyTheme() {
     if (theme === "system") delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = theme;
-    const t = THEMES[theme], nextLabel = THEMES[t.next].label;
-    $("themeIcon").innerHTML = t.icon;
-    $("themeBtn").title = `Tema: ${t.label}. Clic para usar ${nextLabel}`;
-    $("themeBtn").setAttribute("aria-label", `Tema: ${t.label}. Usar ${nextLabel}`);
+    themeOpts.forEach((b) => { const on = b.dataset.t === theme; b.setAttribute("aria-checked", on); b.tabIndex = on ? 0 : -1; });
+    $("themeBtn").title = `Tema: ${themeName(theme)}`;
+    $("themeBtn").setAttribute("aria-label", `Tema: ${themeName(theme)}. Elegir tema`);
   }
-  $("themeBtn").addEventListener("click", () => { theme = THEMES[theme].next; store.set("theme", theme); applyTheme(); });
+  function setTheme(id) { theme = id; store.set("theme", theme); applyTheme(); }
+  themeOpts.forEach((b, i) => {
+    b.addEventListener("click", () => setTheme(b.dataset.t));
+    // radio-group keys: arrows move through the options and apply them
+    b.addEventListener("keydown", (e) => {
+      const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+      if (!d) return;
+      e.preventDefault();
+      const next = themeOpts[(i + d + themeOpts.length) % themeOpts.length];
+      setTheme(next.dataset.t); next.focus();
+    });
+  });
   applyTheme();
 
   /* =================== Side panel: plan / alarm =================== */
@@ -1360,11 +1518,12 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
   function openDrawer(panelId, opener) {
     if (!drawer.hidden && drawerPanel === panelId && opener) { closeDrawer(); return; }
     drawerPanel = panelId; if (opener) drawerOpener = opener;
-    ["panelPlan", "panelAlarm"].forEach((id) => ($(id).hidden = id !== panelId));
-    $("tabPlan").setAttribute("aria-selected", panelId === "panelPlan");
-    $("tabAlarm").setAttribute("aria-selected", panelId === "panelAlarm");
-    $("openPlan").setAttribute("aria-expanded", panelId === "panelPlan");
-    $("openAlarm").setAttribute("aria-expanded", panelId === "panelAlarm");
+    [["panelPlan", "tabPlan", "openPlan"], ["panelAlarm", "tabAlarm", "openAlarm"], ["panelTheme", "tabTheme", "themeBtn"]].forEach(([p, tab, btn]) => {
+      $(p).hidden = p !== panelId;
+      $(tab).setAttribute("aria-selected", p === panelId);
+      $(btn).setAttribute("aria-expanded", p === panelId);
+    });
+    backdrop.classList.toggle("clear", panelId === "panelTheme");
     if (drawer.hidden) {
       drawer.classList.add("opening");
       drawer.hidden = false; backdrop.hidden = false;
@@ -1374,8 +1533,7 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
   }
   function closeDrawer() {
     if (drawer.hidden) return;
-    $("openPlan").setAttribute("aria-expanded", "false");
-    $("openAlarm").setAttribute("aria-expanded", "false");
+    ["openPlan", "openAlarm", "themeBtn"].forEach((id) => $(id).setAttribute("aria-expanded", "false"));
     const done = () => { drawer.hidden = true; backdrop.hidden = true; drawer.classList.remove("closing"); };
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) done();
     else { drawer.classList.add("closing"); setTimeout(done, 240); }
@@ -1386,6 +1544,8 @@ html.desktop.inactive .tb-drag, html.desktop.inactive .tb-btns button:not(:hover
   $("openAlarm").addEventListener("click", (e) => openDrawer("panelAlarm", e.currentTarget));
   $("tabPlan").addEventListener("click", () => openDrawer("panelPlan"));
   $("tabAlarm").addEventListener("click", () => openDrawer("panelAlarm"));
+  $("themeBtn").addEventListener("click", (e) => openDrawer("panelTheme", e.currentTarget));
+  $("tabTheme").addEventListener("click", () => openDrawer("panelTheme"));
   $("drawerClose").addEventListener("click", closeDrawer);
   backdrop.addEventListener("click", closeDrawer);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !drawer.hidden) { e.preventDefault(); closeDrawer(); } });

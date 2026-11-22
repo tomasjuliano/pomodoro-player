@@ -18,6 +18,21 @@ Page (record-store wall): light `--page #ece6d8`, ink `#16140f`, muted `#5f594d`
 Liner-notes sheet: light `#f8f5ee` (inputs `#efeadf`, line `#ddd5c3`); dark `#1c1a17` (`#25221e`, `#332f29`).
 Accent for sheet actions: `#1d3fd8` (dark `#7d96ff` with ink `#0b1238`). Danger: `#c2321f` / `#ff7a66`. Vinyl `#0d0d0f` with grooves `#1d1d21`.
 
+### Theme pressings
+
+The table above is the default pressing, **Azul y mostaza** (light and dark). Seven more themes keep every rule of the world (two-ink sleeve per phase, drained when paused, bone/paper page) and change only the inks. Four light, four dark; "Automático" follows the system between the two Azul y mostaza pressings.
+
+| Theme | Mode | Focus cover / ink / label | Break cover / ink / label | Page / accent |
+|---|---|---|---|---|
+| Imprenta | light | `#c8321b` / `#ffffff` / `#151515` | `#1c1c1c` / `#f3ead8` / `#ff5a3c` | `#efe8dc` / `#c8321b` |
+| Bossa | light | `#0e6b52` / `#fbf4e4` / `#ffb347` | `#f4a9a0` / `#1d1a17` / `#0b5a45` | `#eef0e6` / `#0e6b52` |
+| Risografía | light | `#007a85` / `#ffffff` / `#ffd2e3` | `#ff8fb8` / `#20123a` / `#005f68` | `#f6efe9` / `#007a85` |
+| Humo y bronce | dark | `#7d1d2c` / `#f6ead6` / `#e7b24a` | `#c99a3f` / `#1c1210` / `#5e1220` | `#141011` / `#e7b24a` |
+| Neón | dark | `#5b2bd6` / `#ffffff` / `#4ef2c5` | `#ff6f59` / `#1a0f2e` / `#341a8c` | `#0f0c17` / `#4ef2c5` |
+| Lima | dark | `#c6ef3a` / `#121410` / `#2d3bd1` | `#e9e4d6` / `#121212` / `#c23a22` | `#101210` / `#c6ef3a` |
+
+Paused inks are derived in OKLCH (chroma ×0.42, lightness ×0.9 light / ×0.78 dark for light-ink sleeves), hand-set where a sleeve is already near black or bone (Imprenta, Lima). Every pair is checked: ink on cover ≥4.5:1, label on cover ≥3:1 (running and paused), page and sheet text ≥4.5:1, accent ≥3:1. Full token sets live in `index.html` as `:root[data-theme="…"]` blocks, which also scope `.sw[data-sw="…"]` so each picker swatch renders with its own theme's real tokens.
+
 Rule: the sleeve swaps inks between phases (blue/white for focus, mustard/black for break) so the phase reads from across the room; paused drains the hue. Cover colour crossfades over .9 s.
 
 ## Type
@@ -38,8 +53,8 @@ Rule: the sleeve swaps inks between phases (blue/white for focus, mustard/black 
 - **Tracklist** ("Lado A"): every block and break is a track — number, name, dotted leader, duration, state. Done tracks are struck through with a check; the current track is inverted in the sleeve colours, fills left-to-right with elapsed time and shows the time left.
 - **Now playing strip**: mini vinyl (spins with the music), title, source, next track, transport (round play button), volume.
 - **Buttons on the cover**: main = ink fill with cover-coloured uppercase text (hover: label ink); secondary = 2px ink outline; icon buttons 44px. State tag: dashed outline.
-- **Side panel** for plan and alarm: slides in from the right, 6px left edge in the current sleeve colour, Plan de bloques / Alarma switch, closes with X, Esc or a click outside.
-- **Theme button**: square 34px outline button after Plan/Alarma; cycles Sistema → Claro → Oscuro (monitor, sun, moon icons), stored per viewer and applied before first paint via `data-theme` on the root.
+- **Side panel** for plan, alarm and theme: slides in from the right, 6px left edge in the current sleeve colour, Plan / Alarma / Tema switch, closes with X, Esc or a click outside.
+- **Theme picker**: square 34px outline button (palette icon) after Plan/Alarma opens the side panel on its third tab, "Tema". Options are miniature records on their own page: the break sleeve behind with a label dot, the focus sleeve in front with "FOCO" in its label ink. "Automático" first (light and dark pair), then Claros and Oscuros in two-column grids; a radio group (arrows move and apply), selected = 2px ink border plus check. The backdrop stays clear on this tab so the cover is the live preview. Stored per viewer and applied before first paint via `data-theme` on the root.
 - Icons: inline SVG, filled 24-grid.
 
 ## Desktop window (Neutralino)

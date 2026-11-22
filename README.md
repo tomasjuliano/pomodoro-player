@@ -40,6 +40,7 @@ python -m http.server 5173 --bind 127.0.0.1 --directory pomodoro
 - Timer con anillo de progreso, secuencia completa, tiempo restante y hora estimada de fin.
 - Música de YouTube (playlist o video) o Spotify (playlist, álbum, tema). Arranca en foco y se pausa en descansos (configurable). Favoritos guardados.
 - Alarma sintetizada (4 sonidos, volumen, repeticiones) y notificación del sistema opcional.
+- 8 temas de color (4 claros y 4 oscuros) más uno automático que sigue al sistema: Azul y mostaza, Imprenta, Bossa, Risografía, Humo y bronce, Neón y Lima.
 - Atajos: `Espacio` iniciar/pausar · `S` saltar fase · `M` música play/pausa.
 
 La configuración se guarda en el `localStorage` del navegador.
